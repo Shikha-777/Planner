@@ -388,6 +388,64 @@ def test_goal_graph_agent_executes_a_single_runtime_legal_resolution_transition(
     assert module._planner_calls == []
 
 
+def test_goal_graph_agent_model_selects_only_from_multiple_legal_transitions(monkeypatch):
+    module = load_tau_goal_graph_module(
+        monkeypatch,
+        generated_texts=['{"transition_id":"resolve_b.lookup.B-1","evidence_ids":[]}'],
+    )
+    agent = module.GoalGraphAgent(
+        tools_info=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_a",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"a_id": {"type": "string"}},
+                        "required": ["a_id"],
+                    },
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_b",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"b_id": {"type": "string"}},
+                        "required": ["b_id"],
+                    },
+                },
+            },
+        ],
+        wiki="Policy text",
+        model="local-goal-graph",
+        provider="openai",
+    )
+    agent._episode_state.open_resolution(
+        "resolve_a",
+        "record_a",
+        ["A-1", "A-2"],
+        lookup_tool_name="get_a",
+        lookup_argument_name="a_id",
+    )
+    agent._episode_state.open_resolution(
+        "resolve_b",
+        "record_b",
+        ["B-1", "B-2"],
+        lookup_tool_name="get_b",
+        lookup_argument_name="b_id",
+    )
+
+    action, result, _latency_ms = agent.plan_action([], previous_source="tool")
+
+    assert action.name == "get_b"
+    assert action.kwargs == {"b_id": "B-1"}
+    assert result["runtime_legal_transition_selection"]["model_call"] is True
+    assert result["runtime_legal_transition_selection"]["valid"] is True
+    assert module._planner_calls == []
+
+
 def test_binding_transcript_preserves_raw_observation_without_action_history(monkeypatch):
     module = load_tau_goal_graph_module(monkeypatch)
 

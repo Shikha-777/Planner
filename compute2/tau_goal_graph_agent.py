@@ -5034,21 +5034,70 @@ class GoalGraphAgent(Agent):
         }
         return guarded_action, result
 
-    def runtime_legal_transition_action(self) -> tuple[Action | None, dict[str, Any]]:
-        """Execute the sole runtime-proven read-only resolution transition.
+    def runtime_legal_transition_action(self) -> tuple[Action | None, dict[str, Any], float]:
+        """Execute or select among runtime-proven read-only resolution transitions.
 
         This is deliberately narrow: it only bypasses model planning when the
-        typed episode state has one legal lookup. Writes, ambiguous menus, and
-        ordinary semantic tool selection remain on the shared model/binder path.
+        typed episode state has a legal lookup menu. Writes and ordinary
+        semantic tool selection remain on the shared model/binder path.
         """
         transitions = [
             transition
             for transition in self._episode_state.legal_resolution_transitions()
             if str(transition.get("tool_name") or "") in self.available_tool_names
         ]
-        if len(transitions) != 1:
-            return None, {}
-        transition = transitions[0]
+        if not transitions:
+            return None, {}, 0.0
+        selection: dict[str, Any] = {"model_call": False, "valid": True}
+        transition: dict[str, Any] | None = None
+        if len(transitions) == 1:
+            transition = transitions[0]
+        else:
+            selection_messages = [
+                {
+                    "role": "system",
+                    "content": (
+                        "Return exactly one minified JSON object with transition_id and evidence_ids. "
+                        "Choose one supplied legal transition only. Do not create tools, arguments, values, "
+                        "or additional fields. The first character must be '{'."
+                    ),
+                },
+                {
+                    "role": "user",
+                    "content": short_json(
+                        {
+                            "runtime_state": self._episode_state.planner_projection(max_facts=24),
+                            "legal_transitions": transitions,
+                        },
+                        12000,
+                    ),
+                },
+            ]
+            started_at = time.time()
+            raw_text = generate_text(
+                self.model_obj,
+                self.tokenizer,
+                selection_messages,
+                min(max(self.max_new_tokens // 3, 240), 600),
+            )
+            latency_ms = round((time.time() - started_at) * 1000, 3)
+            parsed, parse_error = extract_json_object(raw_text)
+            transition_id = str(parsed.get("transition_id") or "") if isinstance(parsed, dict) else ""
+            transition = next(
+                (candidate for candidate in transitions if candidate.get("transition_id") == transition_id),
+                None,
+            )
+            selection = {
+                "model_call": True,
+                "raw_text": raw_text,
+                "parse_error": parse_error,
+                "selected_transition_id": transition_id,
+                "valid": transition is not None,
+            }
+            if transition is None:
+                return None, {"runtime_legal_transition_selection": selection}, latency_ms
+        if transition is None:
+            return None, {}, 0.0
         arguments = transition.get("arguments") if isinstance(transition.get("arguments"), dict) else {}
         action = Action(name=str(transition["tool_name"]), kwargs=arguments)
         return action, {
@@ -5056,8 +5105,9 @@ class GoalGraphAgent(Agent):
             "calls": [{"tool_name": action.name, "arguments": dict(action.kwargs)}],
             "planner_skipped": True,
             "runtime_legal_transition": transition,
+            "runtime_legal_transition_selection": selection,
             "stateful_goal_ledger": self._episode_state.goal_ledger(),
-        }
+        }, 0.0 if not selection["model_call"] else latency_ms
 
     def admit_collection_resolution(self, result: dict[str, Any]) -> dict[str, Any]:
         """Persist the shared runtime's bounded collection-search route.
@@ -5143,9 +5193,10 @@ class GoalGraphAgent(Agent):
         return action
 
     def plan_action(self, messages: List[Dict[str, Any]], previous_source: str) -> tuple[Action, dict[str, Any], float]:
-        legal_action, legal_result = self.runtime_legal_transition_action()
+        legal_action, legal_result, legal_latency_ms = self.runtime_legal_transition_action()
         if legal_action is not None:
-            return legal_action, legal_result, 0.0
+            return legal_action, legal_result, legal_latency_ms
+        legal_selection_fallback = legal_result.get("runtime_legal_transition_selection") if legal_result else None
         preflight_action, preflight_result = self.preflight_action(messages)
         if preflight_action is not None:
             return preflight_action, preflight_result, 0.0
@@ -5192,6 +5243,8 @@ class GoalGraphAgent(Agent):
         result["stateful_goal_delta_application"] = goal_delta_application
         result["stateful_goal_ledger"] = self._episode_state.goal_ledger()
         result["runtime_collection_resolution"] = self.admit_collection_resolution(result)
+        if isinstance(legal_selection_fallback, dict):
+            result["runtime_legal_transition_selection"] = legal_selection_fallback
         latency_ms = round((time.time() - start) * 1000, 3)
         action = action_from_goal_graph_result(
             result,
