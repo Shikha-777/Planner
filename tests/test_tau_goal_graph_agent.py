@@ -4,6 +4,7 @@ import importlib.util
 import json
 import sys
 import types
+from dataclasses import replace
 from pathlib import Path
 
 
@@ -484,6 +485,49 @@ def test_goal_graph_agent_commits_successful_mutation_effect_and_blocks_replay(m
     assert replay.name == "respond"
     assert replay_result["mutation_gate"]["allowed"] is False
     assert "already been committed" in replay_result["mutation_gate"]["reason"]
+
+
+def test_goal_graph_agent_requires_and_consumes_a_scoped_confirmation_when_capability_requests_it(monkeypatch):
+    module = load_tau_goal_graph_module(monkeypatch)
+    agent = module.GoalGraphAgent(
+        tools_info=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "cancel_record",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"record_id": {"type": "string"}},
+                        "required": ["record_id"],
+                    },
+                },
+            }
+        ],
+        wiki="Policy text",
+        model="local-goal-graph",
+        provider="openai",
+    )
+    capability = agent._capability_registry["cancel_record"]
+    agent._capability_registry["cancel_record"] = replace(capability, requires_confirmation=True)
+    action = module.Action(name="cancel_record", kwargs={"record_id": "R-1"})
+
+    first_result = {}
+    prompt = agent.gate_mutation_action(action, first_result)
+    confirmation_id = first_result["mutation_gate"]["confirmation"]["confirmation_id"]
+    assert prompt.name == "respond"
+
+    reply = agent._episode_state.record_user_message("Yes, please proceed.")
+    applied = agent._episode_state.apply_confirmation_delta(
+        {"confirmation_id": confirmation_id, "evidence": "Yes"},
+        source_event_id=reply.event_id,
+    )
+    second_result = {}
+    allowed = agent.gate_mutation_action(action, second_result)
+
+    assert applied["accepted"] is True
+    assert allowed == action
+    assert second_result["mutation_gate"]["allowed"] is True
+    assert second_result["mutation_gate"]["packet"]["confirmation_id"] == confirmation_id
 
 
 def test_binding_transcript_preserves_raw_observation_without_action_history(monkeypatch):

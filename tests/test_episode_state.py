@@ -389,3 +389,28 @@ def test_requested_value_correction_invalidates_pending_scoped_confirmation():
     )
 
     assert state.confirmations[confirmation.confirmation_id].status == "invalidated"
+
+
+def test_confirmation_delta_can_validate_only_the_existing_scoped_capability():
+    state = EpisodeState()
+    request = state.record_user_message("Cancel reservation R-1.")
+    confirmation = state.prepare_confirmation(
+        goal_ids=[],
+        operation="cancel_reservation",
+        target_ids=["R-1"],
+        arguments={"reservation_id": "R-1"},
+        human_summary="Cancel R-1.",
+    )
+    reply = state.record_user_message("Yes, cancel it.")
+
+    result = state.apply_confirmation_delta(
+        {"confirmation_id": confirmation.confirmation_id, "evidence": "Yes"},
+        source_event_id=reply.event_id,
+    )
+
+    assert result == {"accepted": True, "confirmation_id": confirmation.confirmation_id}
+    assert state.confirmations[confirmation.confirmation_id].status == "valid"
+    assert state.apply_confirmation_delta(
+        {"confirmation_id": "confirm_unknown", "evidence": "Yes"},
+        source_event_id=reply.event_id,
+    )["accepted"] is False

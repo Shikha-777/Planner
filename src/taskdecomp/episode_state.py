@@ -540,6 +540,44 @@ class EpisodeState:
         confirmation.source_event_id = source_event_id
         return confirmation
 
+    def apply_confirmation_delta(self, delta: Any, *, source_event_id: str | None) -> dict[str, Any]:
+        """Apply a semantic confirmation proposal only through scoped validation."""
+        if not isinstance(delta, dict):
+            return {"accepted": False, "reason": "confirmation_delta_not_object"}
+        confirmation_id = str(delta.get("confirmation_id") or "").strip()
+        evidence = str(delta.get("evidence") or "").strip()
+        if not confirmation_id or not evidence or source_event_id is None:
+            return {"accepted": False, "reason": "confirmation_delta_missing_fields"}
+        try:
+            confirmation = self.validate_confirmation(
+                confirmation_id,
+                source_event_id=source_event_id,
+                evidence=evidence,
+            )
+        except ValueError as exc:
+            return {"accepted": False, "reason": str(exc)}
+        return {"accepted": True, "confirmation_id": confirmation.confirmation_id}
+
+    def confirmation_for_action(
+        self,
+        operation: str,
+        arguments: dict[str, Any],
+        *,
+        statuses: set[ConfirmationStatus] | None = None,
+    ) -> ConfirmationCapability | None:
+        """Find a current authorization for exactly one operation and argument set."""
+        allowed_statuses = statuses or {"valid"}
+        arguments_hash = _canonical_hash(arguments)
+        for confirmation in self.confirmations.values():
+            if (
+                confirmation.status in allowed_statuses
+                and confirmation.request_revision == self.request_revision
+                and confirmation.operation == operation
+                and confirmation.canonical_arguments_hash == arguments_hash
+            ):
+                return confirmation
+        return None
+
     def build_mutation_packet(
         self,
         *,
@@ -865,6 +903,11 @@ class EpisodeState:
                 if resolution.status == "unresolved" and resolution.request_revision == self.request_revision
             ],
             "collections": [snapshot.to_dict() for snapshot in self.collections.values()],
+            "active_confirmations": [
+                confirmation.to_dict()
+                for confirmation in self.confirmations.values()
+                if confirmation.status in {"pending", "valid"} and confirmation.request_revision == self.request_revision
+            ],
         }
 
     def to_dict(self, *, include_events: bool = False) -> dict[str, Any]:

@@ -668,6 +668,7 @@ def test_runtime_owned_stateful_prompt_requests_only_additive_goal_delta():
     assert "The runtime owns the goal ledger" in prompt
     assert "optional goal_delta object" in prompt
     assert "requested_fact_delta" in prompt
+    assert "confirmation_delta" in prompt
     assert "Do not emit goal_ledger" in prompt
     assert "goal_ledger is REQUIRED" not in prompt
 

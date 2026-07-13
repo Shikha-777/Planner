@@ -5156,11 +5156,45 @@ class GoalGraphAgent(Agent):
         capability = self._capability_registry.get(action.name)
         if capability is None or capability.kind != "mutate":
             return action
+        confirmation_id: str | None = None
+        if capability.requires_confirmation:
+            confirmation = self._episode_state.confirmation_for_action(action.name, action.kwargs)
+            if confirmation is None:
+                pending = self._episode_state.confirmation_for_action(
+                    action.name,
+                    action.kwargs,
+                    statuses={"pending"},
+                )
+                if pending is None:
+                    target_ids = [
+                        str(value)
+                        for name, value in action.kwargs.items()
+                        if re.search(r"(?:^|_)(?:id|identifier)$", str(name), re.I)
+                        and isinstance(value, (str, int, float))
+                        and str(value).strip()
+                    ]
+                    if not target_ids:
+                        target_ids = ["arguments:" + hashlib.sha256(short_json(action.kwargs, 4000).encode("utf-8")).hexdigest()[:16]]
+                    pending = self._episode_state.prepare_confirmation(
+                        goal_ids=[],
+                        operation=action.name,
+                        target_ids=target_ids,
+                        arguments=action.kwargs,
+                        human_summary=f"{action.name.replace('_', ' ')} for {', '.join(target_ids)}",
+                    )
+                result["mutation_gate"] = {
+                    "allowed": False,
+                    "reason": "scoped_confirmation_required",
+                    "confirmation": pending.to_dict(),
+                }
+                return fallback_response(f"Please confirm: {pending.human_summary}.")
+            confirmation_id = confirmation.confirmation_id
         try:
             packet = self._episode_state.build_mutation_packet(
                 goal_ids=[],
                 tool_name=action.name,
                 arguments=action.kwargs,
+                confirmation_id=confirmation_id,
             )
         except ValueError as exc:
             result["mutation_gate"] = {"allowed": False, "reason": str(exc)}
@@ -5266,6 +5300,11 @@ class GoalGraphAgent(Agent):
             source_event_id=self._episode_state.latest_user_event_id(),
         )
         result["stateful_requested_fact_delta_application"] = requested_fact_application
+        confirmation_application = self._episode_state.apply_confirmation_delta(
+            result.get("stateful_confirmation_delta"),
+            source_event_id=self._episode_state.latest_user_event_id(),
+        )
+        result["stateful_confirmation_delta_application"] = confirmation_application
         goal_delta = result.get("stateful_goal_delta")
         goal_delta_application = self._episode_state.apply_goal_delta(
             goal_delta,

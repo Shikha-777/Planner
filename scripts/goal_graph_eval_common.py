@@ -874,6 +874,7 @@ def _plan_and_compile_goal_graph_stepwise(
     output_goal_ledger = _stateful_goal_ledger_from_binding_plan(binding_plan, stateful_goal_ledger)
     output_goal_delta = _stateful_goal_delta_from_binding_plan(binding_plan)
     output_requested_fact_delta = _stateful_requested_fact_delta_from_binding_plan(binding_plan)
+    output_confirmation_delta = _stateful_confirmation_delta_from_binding_plan(binding_plan)
     return {
         "planner_mode": "stepwise",
         "stateful": stateful,
@@ -881,6 +882,7 @@ def _plan_and_compile_goal_graph_stepwise(
         "stateful_goal_ledger": output_goal_ledger,
         "stateful_goal_delta": output_goal_delta,
         "stateful_requested_fact_delta": output_requested_fact_delta,
+        "stateful_confirmation_delta": output_confirmation_delta,
         "binding_request": binding_text,
         "binding_request_separate": binding_text != user_request,
         "raw_text": semantic_output.get("raw_text") or "",
@@ -1296,6 +1298,20 @@ def _stateful_requested_fact_delta_from_binding_plan(binding_plan: dict[str, Any
     if not isinstance(updates, list):
         return {}
     return {"set": copy.deepcopy(updates[:16])}
+
+
+def _stateful_confirmation_delta_from_binding_plan(binding_plan: dict[str, Any]) -> dict[str, Any]:
+    """Return a scoped confirmation proposal for runtime validation."""
+    capability_plan = binding_plan.get("capability_plan") if isinstance(binding_plan, dict) else None
+    frame = capability_plan.get("semantic_input_frame") if isinstance(capability_plan, dict) else None
+    delta = frame.get("confirmation_delta") if isinstance(frame, dict) else None
+    if not isinstance(delta, dict):
+        return {}
+    confirmation_id = str(delta.get("confirmation_id") or "").strip()
+    evidence = str(delta.get("evidence") or "").strip()
+    if not confirmation_id or not evidence:
+        return {}
+    return {"confirmation_id": confirmation_id[:160], "evidence": evidence[:500]}
 
 
 def _merge_stateful_goal_ledgers(
@@ -4511,6 +4527,15 @@ def build_tool_binding_frame_messages(
                         else ""
                     ),
                     (
+                        "- active_confirmations are runtime-owned and scoped to exact operation arguments. "
+                        "When the latest user turn clearly confirms one pending confirmation, you may return "
+                        "confirmation_delta with that existing confirmation_id and an evidence span copied "
+                        "exactly from the latest user turn. Never create a confirmation, reuse one for a "
+                        "different action, or treat a confirmation as global authorization.\n"
+                        if stateful and not stateful_goal_ledger_required
+                        else ""
+                    ),
+                    (
                         "- This is a stateful progress repair. Select a different grounded next action "
                         "that can use the observed state, or ask_user with precise missing_inputs. "
                         "Do not repeat any execution_history action. Before asking the user, inspect "
@@ -4550,7 +4575,8 @@ def build_tool_binding_frame_messages(
                         else (
                             "optional goal_delta object with add (goal_id, kind, objective, target_expression, "
                             "quantifier, dependencies, evidence_ids); optional requested_fact_delta object with "
-                            "set (subject, predicate, value, evidence). Do not emit goal_ledger.\n"
+                            "set (subject, predicate, value, evidence); optional confirmation_delta object with "
+                            "confirmation_id and evidence. Do not emit goal_ledger.\n"
                             if stateful
                             else ""
                         )
