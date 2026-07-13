@@ -294,3 +294,98 @@ def test_resolution_emits_one_read_only_transition_and_advances_after_observatio
 
     assert state.record_resolution_lookup("get_record", {"record_id": "R-1"}) == [resolution.resolution_id]
     assert state.legal_resolution_transitions()[0]["arguments"] == {"record_id": "R-2"}
+
+
+def test_scoped_confirmation_binds_exact_arguments_and_consumes_one_effect():
+    state = EpisodeState()
+    request = state.record_user_message("Cancel reservation R-1.")
+    state.apply_goal_delta(
+        {
+            "add": [
+                {
+                    "goal_id": "cancel_reservation",
+                    "kind": "mutate",
+                    "objective": "Cancel reservation R-1.",
+                }
+            ]
+        },
+        source_event_id=request.event_id,
+    )
+    confirmation = state.prepare_confirmation(
+        goal_ids=["cancel_reservation"],
+        operation="cancel_reservation",
+        target_ids=["R-1"],
+        arguments={"reservation_id": "R-1", "reason": "change_of_plans"},
+        human_summary="Cancel reservation R-1 for change of plans.",
+    )
+    reply = state.record_user_message("Yes, please proceed.")
+    state.validate_confirmation(confirmation.confirmation_id, source_event_id=reply.event_id, evidence="Yes")
+    packet = state.build_mutation_packet(
+        goal_ids=["cancel_reservation"],
+        tool_name="cancel_reservation",
+        arguments={"reason": "change_of_plans", "reservation_id": "R-1"},
+        confirmation_id=confirmation.confirmation_id,
+    )
+    result = state.record_tool_result(
+        "cancel_reservation",
+        packet.arguments,
+        {"success": True},
+        success=True,
+    )
+    state.record_mutation_commit(packet, source_event_id=result.event_id)
+
+    assert state.confirmations[confirmation.confirmation_id].status == "consumed"
+    with pytest.raises(ValueError, match="already been committed"):
+        state.build_mutation_packet(
+            goal_ids=["cancel_reservation"],
+            tool_name="cancel_reservation",
+            arguments={"reservation_id": "R-1", "reason": "change_of_plans"},
+            confirmation_id=confirmation.confirmation_id,
+        )
+
+
+def test_requested_value_correction_invalidates_pending_scoped_confirmation():
+    state = EpisodeState()
+    request = state.record_user_message("Change reservation R-1 to August 20.")
+    state.apply_goal_delta(
+        {
+            "add": [
+                {
+                    "goal_id": "change_reservation",
+                    "kind": "mutate",
+                    "objective": "Change reservation R-1.",
+                }
+            ]
+        },
+        source_event_id=request.event_id,
+    )
+    state.record_requested_fact(
+        EntityRef("reservation", "R-1"),
+        "departure_date",
+        "2026-08-20",
+        source_event_id=request.event_id,
+    )
+    confirmation = state.prepare_confirmation(
+        goal_ids=["change_reservation"],
+        operation="change_reservation",
+        target_ids=["R-1"],
+        arguments={"reservation_id": "R-1", "departure_date": "2026-08-20"},
+        human_summary="Change R-1 to August 20.",
+    )
+
+    correction = state.record_user_message("Actually change reservation R-1 to August 22.")
+    state.apply_requested_fact_delta(
+        {
+            "set": [
+                {
+                    "subject": {"entity_type": "reservation", "entity_id": "R-1"},
+                    "predicate": "departure_date",
+                    "value": "2026-08-22",
+                    "evidence": "August 22",
+                }
+            ]
+        },
+        source_event_id=correction.event_id,
+    )
+
+    assert state.confirmations[confirmation.confirmation_id].status == "invalidated"

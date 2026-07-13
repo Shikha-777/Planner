@@ -9,6 +9,7 @@ model dependency so reducers remain deterministic and replayable.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import re
 from dataclasses import dataclass, field
@@ -28,6 +29,7 @@ GoalKind = Literal["identify", "retrieve", "mutate", "communicate"]
 GoalStatus = Literal["pending", "blocked", "ready", "executing", "satisfied", "failed", "cancelled"]
 GoalQuantifier = Literal["one", "all", "any", "exactly_n"]
 ResolutionStatus = Literal["unresolved", "resolved", "needs_user"]
+ConfirmationStatus = Literal["pending", "valid", "consumed", "invalidated"]
 
 
 @dataclass(frozen=True)
@@ -200,6 +202,72 @@ class ResolutionState:
 
 
 @dataclass
+class ConfirmationCapability:
+    """A user authorization scoped to one exact pending mutation packet."""
+
+    confirmation_id: str
+    goal_ids: list[str]
+    operation: str
+    target_ids: list[str]
+    canonical_arguments_hash: str
+    human_summary: str
+    created_turn: int
+    request_revision: int
+    status: ConfirmationStatus = "pending"
+    source_event_id: str | None = None
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "confirmation_id": self.confirmation_id,
+            "goal_ids": list(self.goal_ids),
+            "operation": self.operation,
+            "target_ids": list(self.target_ids),
+            "canonical_arguments_hash": self.canonical_arguments_hash,
+            "human_summary": self.human_summary,
+            "created_turn": self.created_turn,
+            "request_revision": self.request_revision,
+            "status": self.status,
+            "source_event_id": self.source_event_id,
+        }
+
+
+@dataclass(frozen=True)
+class MutationPacket:
+    """The immutable, reviewable payload submitted to a mutating tool."""
+
+    goal_ids: tuple[str, ...]
+    tool_name: str
+    arguments: dict[str, Any]
+    target_certificate_id: str | None
+    desired_diff: dict[str, Any]
+    policy_preconditions: tuple[dict[str, Any], ...]
+    confirmation_id: str | None
+    request_revision: int
+
+    def effect_key(self) -> str:
+        return _effect_key(
+            self.goal_ids,
+            self.tool_name,
+            self.arguments,
+            self.request_revision,
+            self.target_certificate_id,
+        )
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "goal_ids": list(self.goal_ids),
+            "tool_name": self.tool_name,
+            "arguments": copy.deepcopy(self.arguments),
+            "target_certificate_id": self.target_certificate_id,
+            "desired_diff": copy.deepcopy(self.desired_diff),
+            "policy_preconditions": copy.deepcopy(list(self.policy_preconditions)),
+            "confirmation_id": self.confirmation_id,
+            "request_revision": self.request_revision,
+            "effect_key": self.effect_key(),
+        }
+
+
+@dataclass
 class EpisodeState:
     """Append-only raw events plus deterministic normalized facts.
 
@@ -214,6 +282,8 @@ class EpisodeState:
     goals: dict[str, Goal] = field(default_factory=dict)
     collections: dict[str, CollectionSnapshot] = field(default_factory=dict)
     resolutions: dict[str, ResolutionState] = field(default_factory=dict)
+    confirmations: dict[str, ConfirmationCapability] = field(default_factory=dict)
+    completed_effects: dict[str, str] = field(default_factory=dict)
     request_revision: int = 1
     user_turn: int = 0
     _next_event_number: int = 1
@@ -304,6 +374,7 @@ class EpisodeState:
         if request_revision is None:
             if prior is not None:
                 self.request_revision += 1
+                self._invalidate_stale_confirmations()
             request_revision = self.request_revision
         return self._add_fact(
             subject=subject,
@@ -365,6 +436,7 @@ class EpisodeState:
             accepted.append(fact.fact_id)
         if changed:
             self.request_revision = target_revision
+            self._invalidate_stale_confirmations()
         return {"accepted": accepted, "rejected": rejected, "request_revision": self.request_revision}
 
     def apply_goal_delta(self, delta: Any, *, source_event_id: str | None = None) -> dict[str, Any]:
@@ -407,6 +479,127 @@ class EpisodeState:
             self.goals[goal.goal_id] = goal
             accepted.append(goal.goal_id)
         return {"accepted": accepted, "rejected": rejected}
+
+    def prepare_confirmation(
+        self,
+        *,
+        goal_ids: list[str],
+        operation: str,
+        target_ids: list[str],
+        arguments: dict[str, Any],
+        human_summary: str,
+    ) -> ConfirmationCapability:
+        """Create or reuse a pending authorization for one canonical action."""
+        normalized_goals = _bounded_string_list(goal_ids, 32)
+        normalized_targets = _bounded_string_list(target_ids, 64)
+        operation = str(operation).strip()[:120]
+        if not operation or not normalized_targets:
+            raise ValueError("a confirmation needs an operation and at least one target")
+        if any(goal_id not in self.goals for goal_id in normalized_goals):
+            raise ValueError("confirmation references an unknown goal")
+        arguments_hash = _canonical_hash(arguments)
+        key = _effect_key(normalized_goals, operation, arguments, self.request_revision, ",".join(normalized_targets))
+        confirmation_id = "confirm_" + key[:16]
+        existing = self.confirmations.get(confirmation_id)
+        if existing is not None:
+            return existing
+        capability = ConfirmationCapability(
+            confirmation_id=confirmation_id,
+            goal_ids=normalized_goals,
+            operation=operation,
+            target_ids=normalized_targets,
+            canonical_arguments_hash=arguments_hash,
+            human_summary=str(human_summary).strip()[:800],
+            created_turn=self.user_turn,
+            request_revision=self.request_revision,
+        )
+        self.confirmations[confirmation_id] = capability
+        return capability
+
+    def validate_confirmation(
+        self,
+        confirmation_id: str,
+        *,
+        source_event_id: str,
+        evidence: str,
+    ) -> ConfirmationCapability:
+        """Validate a quoted reply without granting global approval."""
+        confirmation = self.confirmations.get(confirmation_id)
+        source_event = next((event for event in self.event_log if event.event_id == source_event_id), None)
+        if confirmation is None or source_event is None or source_event.kind != "user_message":
+            raise ValueError("confirmation and user source event are required")
+        if confirmation.status != "pending" or confirmation.request_revision != self.request_revision:
+            raise ValueError("confirmation is not valid for the current request revision")
+        if source_event.turn <= confirmation.created_turn:
+            raise ValueError("confirmation reply must follow the confirmation request")
+        evidence = str(evidence).strip()
+        user_text = str(source_event.payload.get("content") or "")
+        if not evidence or evidence.casefold() not in user_text.casefold():
+            raise ValueError("confirmation evidence is not present in the user reply")
+        confirmation.status = "valid"
+        confirmation.source_event_id = source_event_id
+        return confirmation
+
+    def build_mutation_packet(
+        self,
+        *,
+        goal_ids: list[str],
+        tool_name: str,
+        arguments: dict[str, Any],
+        target_certificate_id: str | None = None,
+        desired_diff: dict[str, Any] | None = None,
+        policy_preconditions: list[dict[str, Any]] | None = None,
+        confirmation_id: str | None = None,
+    ) -> MutationPacket:
+        """Prepare a packet only when it is fresh and not already committed."""
+        normalized_goals = tuple(_bounded_string_list(goal_ids, 32))
+        if any(goal_id not in self.goals for goal_id in normalized_goals):
+            raise ValueError("mutation packet references an unknown goal")
+        prospective_effect_key = _effect_key(
+            normalized_goals,
+            str(tool_name).strip()[:120],
+            arguments if isinstance(arguments, dict) else {},
+            self.request_revision,
+            str(target_certificate_id)[:160] if target_certificate_id else None,
+        )
+        if prospective_effect_key in self.completed_effects:
+            raise ValueError("mutation effect has already been committed")
+        if confirmation_id:
+            confirmation = self.confirmations.get(confirmation_id)
+            if confirmation is None or confirmation.status != "valid":
+                raise ValueError("mutation packet requires a valid scoped confirmation")
+            if confirmation.request_revision != self.request_revision:
+                raise ValueError("mutation packet confirmation is stale")
+            if confirmation.operation != str(tool_name):
+                raise ValueError("confirmation operation does not match mutation tool")
+            if confirmation.canonical_arguments_hash != _canonical_hash(arguments):
+                raise ValueError("confirmation arguments do not match mutation packet")
+        packet = MutationPacket(
+            goal_ids=normalized_goals,
+            tool_name=str(tool_name).strip()[:120],
+            arguments=copy.deepcopy(arguments) if isinstance(arguments, dict) else {},
+            target_certificate_id=str(target_certificate_id)[:160] if target_certificate_id else None,
+            desired_diff=copy.deepcopy(desired_diff) if isinstance(desired_diff, dict) else {},
+            policy_preconditions=tuple(
+                copy.deepcopy(item) for item in (policy_preconditions or []) if isinstance(item, dict)
+            ),
+            confirmation_id=confirmation_id,
+            request_revision=self.request_revision,
+        )
+        return packet
+
+    def record_mutation_commit(self, packet: MutationPacket, *, source_event_id: str) -> None:
+        """Record a single committed effect after a successful tool observation."""
+        if packet.request_revision != self.request_revision:
+            raise ValueError("cannot commit a stale mutation packet")
+        key = packet.effect_key()
+        if key in self.completed_effects:
+            raise ValueError("mutation effect has already been committed")
+        self.completed_effects[key] = source_event_id
+        if packet.confirmation_id:
+            confirmation = self.confirmations.get(packet.confirmation_id)
+            if confirmation is not None:
+                confirmation.status = "consumed"
 
     def goal_ledger(self) -> dict[str, Any]:
         """Project typed runtime goals into compact planner continuity context."""
@@ -682,6 +875,8 @@ class EpisodeState:
             "goals": [goal.to_dict() for goal in self.goals.values()],
             "collections": [snapshot.to_dict() for snapshot in self.collections.values()],
             "resolutions": [resolution.to_dict() for resolution in self.resolutions.values()],
+            "confirmations": [confirmation.to_dict() for confirmation in self.confirmations.values()],
+            "completed_effects": copy.deepcopy(self.completed_effects),
         }
         if include_events:
             payload["event_log"] = [event.to_dict() for event in self.event_log]
@@ -722,6 +917,11 @@ class EpisodeState:
             ),
             None,
         )
+
+    def _invalidate_stale_confirmations(self) -> None:
+        for confirmation in self.confirmations.values():
+            if confirmation.status in {"pending", "valid"} and confirmation.request_revision != self.request_revision:
+                confirmation.status = "invalidated"
 
     def _validate_requested_fact_proposal(
         self,
@@ -947,6 +1147,29 @@ def _unique_identifiers(values: Any) -> list[str]:
         if identifier and identifier not in result:
             result.append(identifier)
     return result
+
+
+def _canonical_hash(value: Any) -> str:
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"), default=str).encode("utf-8")
+    return hashlib.sha256(encoded).hexdigest()
+
+
+def _effect_key(
+    goal_ids: tuple[str, ...] | list[str],
+    operation: str,
+    arguments: dict[str, Any],
+    request_revision: int,
+    target_certificate_id: str | None,
+) -> str:
+    return _canonical_hash(
+        {
+            "goal_ids": sorted(str(goal_id) for goal_id in goal_ids),
+            "operation": str(operation),
+            "arguments": arguments,
+            "request_revision": request_revision,
+            "target_certificate_id": target_certificate_id,
+        }
+    )
 
 
 def _goal_status_for_planner(status: GoalStatus) -> str:
