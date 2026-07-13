@@ -998,6 +998,9 @@ def test_stateful_candidate_reviewer_preserves_verified_bounded_readonly_disambi
             {
                 "verdict": "reject",
                 "reason": "The user did not name R-1.",
+                "checks": {"target_uniquely_resolved": "false"},
+                "failed_check": "target_uniquely_resolved",
+                "evidence_ids": ["obs_profile:/records"],
                 "candidate_calls": candidate_calls,
             }
         ),
@@ -1064,7 +1067,16 @@ def test_stateful_candidate_reviewer_rejects_an_explicit_rejection():
     review = _review_stateful_candidate_calls(
         None,
         None,
-        lambda *_args: json.dumps({"verdict": "reject", "reason": "test", "candidate_calls": candidate_calls}),
+        lambda *_args: json.dumps(
+            {
+                "verdict": "reject",
+                "reason": "test",
+                "checks": {"facts_are_current": "false"},
+                "failed_check": "facts_are_current",
+                "evidence_ids": ["obs_1:/status"],
+                "candidate_calls": candidate_calls,
+            }
+        ),
         "Retrieve record R-1.",
         [],
         candidate_calls,
@@ -1074,6 +1086,24 @@ def test_stateful_candidate_reviewer_rejects_an_explicit_rejection():
 
     assert review["attempted"] is True
     assert review["allowed"] is False
+    assert review["failed_check"] == "facts_are_current"
+
+
+def test_stateful_candidate_reviewer_abstains_from_an_unstructured_rejection():
+    candidate_calls = [{"tool_name": "get_record", "arguments": {"record_id": "R-1"}}]
+    review = _review_stateful_candidate_calls(
+        None,
+        None,
+        lambda *_args: json.dumps({"verdict": "reject", "reason": "test", "candidate_calls": candidate_calls}),
+        "Retrieve record R-1.",
+        [],
+        candidate_calls,
+        [],
+        100,
+    )
+
+    assert review["allowed"] is True
+    assert review["abstained"] is True
 
 
 def test_stateful_candidate_reviewer_abstains_when_it_echoes_a_different_call():
@@ -1243,7 +1273,16 @@ def test_stateful_candidate_repair_preserves_a_semantic_response_after_rejection
     outputs = iter(
         [
             '{"tool_decision":"call","canonical_request":"Retrieve R-1.","slots_observed":[],"call_groups":[{"expected_call_count":1}],"tool_bindings":[{"tool_name":"get_record","call_count":1,"arguments":{"record_id":"R-1"},"evidence_spans":{"record_id":"R-1"}}],"missing_inputs":[]}',
-            json.dumps({"verdict": "reject", "reason": "Respond with the result instead.", "candidate_calls": candidate_calls}),
+            json.dumps(
+                {
+                    "verdict": "reject",
+                    "reason": "Respond with the result instead.",
+                    "checks": {"effect_not_already_completed": "false"},
+                    "failed_check": "effect_not_already_completed",
+                    "evidence_ids": ["obs_1:/record_id"],
+                    "candidate_calls": candidate_calls,
+                }
+            ),
             '{"tool_decision":"no_tool","canonical_request":"Report the retrieved result.","slots_observed":[],"call_groups":[],"tool_bindings":[],"missing_inputs":[],"response_message":"The requested record is available."}',
             '{"verdict":"allow","reason":"The repaired response is a complete customer-facing answer."}',
         ]

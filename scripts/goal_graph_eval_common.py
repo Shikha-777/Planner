@@ -1480,13 +1480,19 @@ def _review_stateful_candidate_calls(
                 "retrieval over one audited member of an unresolved observed collection is a bounded "
                 "disambiguation step, not a choice of target: allow it when its result can identify the "
                 "matching record. Do not apply that exception to a write; a write still needs a verified "
-                "target match."
+                "target match. A rejection is actionable only when checks identifies a defined false "
+                "predicate, failed_check names that predicate, and evidence_ids contains at least one "
+                "source identifier. Do not reject a property that deterministic schema/evidence checks "
+                "already proved."
             ),
         },
         {
             "role": "user",
             "content": (
-                'Output fields: verdict ("allow" or "reject"), reason, candidate_calls. '
+                'Output fields: verdict ("allow" or "reject"), checks, failed_check, evidence_ids, reason, candidate_calls. '
+                "checks may use only supports_active_goal, target_uniquely_resolved, "
+                "arguments_match_current_request, facts_are_current, policy_preconditions_satisfied, "
+                "confirmation_valid, effect_not_already_completed; each value is true, false, or unknown. "
                 "candidate_calls must exactly reproduce the supplied candidate_calls before you judge it. "
                 f"Input:{_compact_json(payload)}"
             ),
@@ -1498,7 +1504,7 @@ def _review_stateful_candidate_calls(
         generate_text,
         messages,
         min(max(max_new_tokens, 1000), 1200),
-        'verdict ("allow" or "reject"), reason, candidate_calls',
+        'verdict ("allow" or "reject"), checks, failed_check, evidence_ids, reason, candidate_calls',
         payload_validator=_reviewer_has_allow_reject_verdict,
     )
     if not isinstance(parsed, dict):
@@ -1525,6 +1531,17 @@ def _review_stateful_candidate_calls(
             "format_recovery": format_recovery,
         }
     verdict = str(parsed.get("verdict") or "").strip().lower()
+    structured_rejection = _structured_candidate_rejection(parsed)
+    if verdict == "reject" and structured_rejection is None:
+        return {
+            "attempted": True,
+            "allowed": True,
+            "abstained": True,
+            "verdict": verdict,
+            "reason": "semantic reviewer rejection lacked an actionable structured predicate",
+            "raw_text": raw_text,
+            "format_recovery": format_recovery,
+        }
     bounded_disambiguation = _stateful_bounded_readonly_disambiguation(
         candidate_payload,
         completed_calls,
@@ -1548,8 +1565,43 @@ def _review_stateful_candidate_calls(
         "allowed": verdict == "allow",
         "verdict": verdict,
         "reason": str(parsed.get("reason") or ""),
+        **(structured_rejection or {}),
         "raw_text": raw_text,
         "format_recovery": format_recovery,
+    }
+
+
+_CANDIDATE_REVIEW_CHECKS = {
+    "supports_active_goal",
+    "target_uniquely_resolved",
+    "arguments_match_current_request",
+    "facts_are_current",
+    "policy_preconditions_satisfied",
+    "confirmation_valid",
+    "effect_not_already_completed",
+}
+
+
+def _structured_candidate_rejection(payload: dict[str, Any]) -> dict[str, Any] | None:
+    """Accept only predicate-level reviewer rejections with cited state."""
+    checks = payload.get("checks")
+    failed_check = str(payload.get("failed_check") or "").strip()
+    evidence_ids = payload.get("evidence_ids")
+    if not isinstance(checks, dict) or failed_check not in _CANDIDATE_REVIEW_CHECKS:
+        return None
+    if str(checks.get(failed_check) or "").strip().lower() != "false":
+        return None
+    if any(str(value).strip().lower() not in {"true", "false", "unknown"} for value in checks.values()):
+        return None
+    if not isinstance(evidence_ids, list):
+        return None
+    normalized_evidence = [str(value).strip()[:240] for value in evidence_ids if str(value).strip()]
+    if not normalized_evidence:
+        return None
+    return {
+        "checks": {str(key): str(value).strip().lower() for key, value in checks.items()},
+        "failed_check": failed_check,
+        "evidence_ids": normalized_evidence[:16],
     }
 
 
