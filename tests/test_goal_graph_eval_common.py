@@ -960,6 +960,47 @@ def test_stateful_candidate_reviewer_allows_bounded_readonly_disambiguation_prom
     assert review["allowed"] is True
 
 
+def test_stateful_candidate_reviewer_preserves_verified_bounded_readonly_disambiguation():
+    tools = [
+        {
+            "name": "get_record",
+            "description": "Retrieve details for one record.",
+            "parameters": {
+                "type": "object",
+                "properties": {"record_id": {"type": "string"}},
+                "required": ["record_id"],
+            },
+        }
+    ]
+    candidate_calls = [{"tool_name": "get_record", "arguments": {"record_id": "R-1"}}]
+    review = _review_stateful_candidate_calls(
+        None,
+        None,
+        lambda *_args: json.dumps(
+            {
+                "verdict": "reject",
+                "reason": "The user did not name R-1.",
+                "candidate_calls": candidate_calls,
+            }
+        ),
+        "Find the matching record.",
+        tools,
+        candidate_calls,
+        [
+            {
+                "tool_name": "get_profile",
+                "outcome": "success",
+                "observation": {"records": ["R-1", "R-2"]},
+            }
+        ],
+        100,
+        runtime=GoalGraphRuntime(tools),
+    )
+
+    assert review["allowed"] is True
+    assert review["overridden"] is True
+
+
 def test_stateful_candidate_reviewer_rejects_an_explicit_rejection():
     candidate_calls = [{"tool_name": "get_record", "arguments": {"record_id": "R-1"}}]
     review = _review_stateful_candidate_calls(

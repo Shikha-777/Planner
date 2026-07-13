@@ -677,6 +677,7 @@ def _plan_and_compile_goal_graph_stepwise(
             compiled_calls_to_dicts(output.calls),
             completed_calls,
             max_new_tokens,
+            runtime=runtime,
         )
         if terminal_review is not None:
             stateful_semantic_review_result["terminal_review"] = terminal_review
@@ -713,6 +714,7 @@ def _plan_and_compile_goal_graph_stepwise(
                         compiled_calls_to_dicts(repaired_output.calls),
                         completed_calls,
                         max_new_tokens,
+                        runtime=runtime,
                     )
                     stateful_semantic_review_result["repair_review"] = repair_review
                     if repair_review["allowed"]:
@@ -1388,6 +1390,8 @@ def _review_stateful_candidate_calls(
     calls: list[dict[str, Any]],
     completed_calls: list[dict[str, Any]],
     max_new_tokens: int,
+    *,
+    runtime: GoalGraphRuntime | None = None,
 ) -> dict[str, Any]:
     """Ask GPT-OSS to judge a candidate transition; it cannot create a call."""
     candidate_payload = [
@@ -1468,6 +1472,24 @@ def _review_stateful_candidate_calls(
             "format_recovery": format_recovery,
         }
     verdict = str(parsed.get("verdict") or "").strip().lower()
+    bounded_disambiguation = _stateful_bounded_readonly_disambiguation(
+        candidate_payload,
+        completed_calls,
+        runtime,
+    )
+    if verdict != "allow" and bounded_disambiguation["allowed"]:
+        # The compiler has already validated the schema and evidence.  For this
+        # one safe transition, source-attributed ambiguity is stronger than a
+        # reviewer that mistakes a read for an unrequested target selection.
+        return {
+            "attempted": True,
+            "allowed": True,
+            "verdict": verdict,
+            "overridden": True,
+            "reason": bounded_disambiguation["reason"],
+            "raw_text": raw_text,
+            "format_recovery": format_recovery,
+        }
     return {
         "attempted": True,
         "allowed": verdict == "allow",
@@ -1476,6 +1498,55 @@ def _review_stateful_candidate_calls(
         "raw_text": raw_text,
         "format_recovery": format_recovery,
     }
+
+
+def _stateful_bounded_readonly_disambiguation(
+    calls: list[dict[str, Any]],
+    completed_calls: list[dict[str, Any]],
+    runtime: GoalGraphRuntime | None,
+) -> dict[str, Any]:
+    """Recognize one provenance-grounded read over an ambiguous record collection.
+
+    This is a verifier rule rather than a route-selection rule.  It cannot
+    choose a tool or value: it only preserves a compiled, single read-only
+    candidate when its identifier is an audited member of a collection with
+    multiple possible members.  Writes remain subject to normal review.
+    """
+    if runtime is None or len(calls) != 1:
+        return {"allowed": False}
+    call = calls[0] if isinstance(calls[0], dict) else {}
+    tool_name = str(call.get("tool_name") or "")
+    capability = runtime.registry.get(tool_name)
+    if (
+        capability is None
+        or capability.risk != "read_only"
+        or capability.kind not in {"resolve", "retrieve", "search", "rank", "decide"}
+    ):
+        return {"allowed": False}
+    arguments = call.get("arguments") if isinstance(call.get("arguments"), dict) else {}
+    if not arguments:
+        return {"allowed": False}
+    facts = _stateful_verified_observation_facts(completed_calls)
+    for input_name, value in arguments.items():
+        if not isinstance(value, (str, int, float, bool)):
+            continue
+        for fact in facts:
+            if fact.get("value") != value:
+                continue
+            candidates = _stateful_collection_candidates_for_missing_input(
+                str(input_name),
+                fact,
+                facts,
+            )
+            if len(candidates) > 1:
+                return {
+                    "allowed": True,
+                    "reason": (
+                        "verified bounded read-only disambiguation over a "
+                        "source-audited ambiguous collection"
+                    ),
+                }
+    return {"allowed": False}
 
 
 def _terminal_reviewer_restates_candidate_decision(
