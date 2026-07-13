@@ -310,24 +310,23 @@ def test_goal_graph_agent_uses_stepwise_planner_directly(monkeypatch):
     assert planner_call["kwargs"]["stateful_semantic_review"] is True
     assert planner_call["kwargs"]["execution_history"] == []
     assert planner_call["kwargs"]["stateful_goal_ledger"] == {}
-    assert planner_call["kwargs"]["stateful_goal_ledger_required"] is True
+    assert planner_call["kwargs"]["stateful_goal_ledger_required"] is False
 
 
-def test_goal_graph_agent_persists_shared_stateful_goal_ledger(monkeypatch):
-    ledger = {
-        "goals": [
+def test_goal_graph_agent_applies_additive_goal_delta_to_runtime_owned_ledger(monkeypatch):
+    goal_delta = {
+        "add": [
             {
-                "id": "goal_lookup",
+                "goal_id": "goal_lookup",
+                "kind": "retrieve",
                 "objective": "Retrieve record O-1.",
-                "status": "pending",
-                "depends_on": [],
+                "evidence_ids": ["event_1"],
             }
-        ],
-        "next_goal_id": "goal_lookup",
+        ]
     }
     module = load_tau_goal_graph_module(
         monkeypatch,
-        plan_result={"verification_ok": True, "calls": [], "stateful_goal_ledger": ledger},
+        plan_result={"verification_ok": True, "calls": [], "stateful_goal_delta": goal_delta},
     )
     agent = module.GoalGraphAgent(
         tools_info=[],
@@ -345,9 +344,48 @@ def test_goal_graph_agent_persists_shared_stateful_goal_ledger(monkeypatch):
         previous_source="user",
     )
 
-    assert agent._stateful_goal_ledger == ledger
-    assert "Stateful goal ledger" in request
+    assert agent._episode_state.goal_ledger()["goals"][0]["id"] == "goal_lookup"
+    assert "Runtime-owned episode state" in request
     assert '"goal_lookup"' in request
+
+
+def test_goal_graph_agent_executes_a_single_runtime_legal_resolution_transition(monkeypatch):
+    module = load_tau_goal_graph_module(monkeypatch)
+    agent = module.GoalGraphAgent(
+        tools_info=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_record",
+                    "description": "Get a record.",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"record_id": {"type": "string"}},
+                        "required": ["record_id"],
+                    },
+                },
+            }
+        ],
+        wiki="Policy text",
+        model="local-goal-graph",
+        provider="openai",
+    )
+    agent._episode_state.open_resolution(
+        "resolve_record_1",
+        "record",
+        ["R-1", "R-2"],
+        lookup_tool_name="get_record",
+        lookup_argument_name="record_id",
+    )
+
+    action, result, latency_ms = agent.plan_action([], previous_source="tool")
+
+    assert action.name == "get_record"
+    assert action.kwargs == {"record_id": "R-1"}
+    assert latency_ms == 0.0
+    assert result["planner_skipped"] is True
+    assert result["runtime_legal_transition"]["purpose"] == "identify_target"
+    assert module._planner_calls == []
 
 
 def test_binding_transcript_preserves_raw_observation_without_action_history(monkeypatch):

@@ -7,6 +7,7 @@ first verified compiled call into tau-bench's single-step ``Action`` API.
 
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -57,6 +58,7 @@ except ImportError:
     RESPOND_ACTION_NAME = "respond"
 
 from goal_graph_eval_common import plan_and_compile_goal_graph
+from taskdecomp.episode_state import EpisodeState
 from run_gptoss_capability_plan import generate_text, load_model
 from taskdecomp.capability_planning import extract_json_object
 from taskdecomp.tool_binding import _filter_schema_value_incompatible_calls
@@ -4776,7 +4778,7 @@ class GoalGraphAgent(Agent):
         # switch explicit prevents benchmark-domain rules from silently
         # becoming part of the general goal-graph runtime.
         self.legacy_tau_heuristics = env_bool("TAU_GOAL_GRAPH_LEGACY_HEURISTICS", False)
-        self._stateful_goal_ledger: Dict[str, Any] = {}
+        self._episode_state = EpisodeState()
         self.debug_dir = Path(os.environ.get("TAU_GOAL_GRAPH_DEBUG_DIR", "")) if os.environ.get("TAU_GOAL_GRAPH_DEBUG_DIR") else None
         self.replay_trace_enabled = env_bool("TAU_GOAL_GRAPH_REPLAY_TRACE", True)
         if self.debug_dir:
@@ -4789,11 +4791,9 @@ class GoalGraphAgent(Agent):
     def build_request(self, messages: List[Dict[str, Any]], previous_source: str) -> str:
         # The shared binder expects natural-language task context.  A JSON
         # envelope makes schema keys look like user-requested entities.
-        ledger_context = (
-            "\n\nStateful goal ledger (semantic continuity context, not direct evidence):\n"
-            + short_json(self._stateful_goal_ledger, 1200)
-            if self._stateful_goal_ledger
-            else ""
+        state_context = (
+            "\n\nRuntime-owned episode state (current typed facts and obligations, not raw evidence):\n"
+            + short_json(self._episode_state.planner_projection(max_facts=36), 4200)
         )
         prefix = (
             "Current task: choose exactly one next action in the tool environment. "
@@ -4802,20 +4802,22 @@ class GoalGraphAgent(Agent):
             f"Previous observation source: {previous_source}\n\n"
             "Transcript:\n"
         )
-        transcript_budget = max(1000, self.planning_context_chars - len(prefix) - len(ledger_context))
+        transcript_budget = max(1000, self.planning_context_chars - len(prefix) - len(state_context))
         transcript = bounded_stateful_transcript(
             messages,
             transcript_for_goal_graph,
             max_messages=self.transcript_context_messages,
             max_chars=transcript_budget,
         )
-        return prefix + transcript + ledger_context
+        return prefix + transcript + state_context
 
     def build_binding_request(self, messages: List[Dict[str, Any]], previous_source: str) -> str:
         # Keep deterministic slot binding grounded in the live state only.
         # Policy text is useful to the semantic model, but it is not evidence
         # that concrete IDs or argument values are present in the environment.
+        state_context = short_json(self._episode_state.planner_projection(max_facts=32), 3600)
         prefix = "Binding evidence from user text and environment values:\n"
+        prefix += "Runtime-owned active state with source IDs:\n" + state_context + "\n\nTranscript evidence:\n"
         transcript = bounded_stateful_transcript(
             messages,
             transcript_for_binding,
@@ -5032,6 +5034,65 @@ class GoalGraphAgent(Agent):
         }
         return guarded_action, result
 
+    def runtime_legal_transition_action(self) -> tuple[Action | None, dict[str, Any]]:
+        """Execute the sole runtime-proven read-only resolution transition.
+
+        This is deliberately narrow: it only bypasses model planning when the
+        typed episode state has one legal lookup. Writes, ambiguous menus, and
+        ordinary semantic tool selection remain on the shared model/binder path.
+        """
+        transitions = [
+            transition
+            for transition in self._episode_state.legal_resolution_transitions()
+            if str(transition.get("tool_name") or "") in self.available_tool_names
+        ]
+        if len(transitions) != 1:
+            return None, {}
+        transition = transitions[0]
+        arguments = transition.get("arguments") if isinstance(transition.get("arguments"), dict) else {}
+        action = Action(name=str(transition["tool_name"]), kwargs=arguments)
+        return action, {
+            "verification_ok": True,
+            "calls": [{"tool_name": action.name, "arguments": dict(action.kwargs)}],
+            "planner_skipped": True,
+            "runtime_legal_transition": transition,
+            "stateful_goal_ledger": self._episode_state.goal_ledger(),
+        }
+
+    def admit_collection_resolution(self, result: dict[str, Any]) -> dict[str, Any]:
+        """Persist the shared runtime's bounded collection-search route.
+
+        The generic compiler already proves that this is one read-only route
+        over a source-audited collection. Here it becomes explicit state so
+        subsequent candidates are scheduled by the runtime rather than being
+        reconstructed from transcript text.
+        """
+        details = result.get("stateful_collection_disambiguation")
+        if not isinstance(details, dict) or not details.get("used"):
+            return {"used": False}
+        tool_name = str(details.get("tool_name") or "").strip()
+        input_name = str(details.get("input_name") or "").strip()
+        raw_candidates = details.get("candidate_ids")
+        candidates = [str(value).strip() for value in raw_candidates if str(value).strip()] if isinstance(raw_candidates, list) else []
+        if not tool_name or not input_name or len(dict.fromkeys(candidates)) < 2:
+            return {"used": False, "reason": "incomplete_collection_route"}
+        key = short_json({"tool": tool_name, "argument": input_name, "candidates": candidates}, 1000)
+        resolution_id = "resolution_" + hashlib.sha256(key.encode("utf-8")).hexdigest()[:16]
+        resolution = self._episode_state.open_resolution(
+            resolution_id,
+            input_name.removesuffix("_id") or "record",
+            candidates,
+            lookup_tool_name=tool_name,
+            lookup_argument_name=input_name,
+            lookup_budget=len(candidates),
+        )
+        attempted = details.get("attempted_ids")
+        attempted_ids = [str(value).strip() for value in attempted if str(value).strip()] if isinstance(attempted, list) else []
+        for candidate_id in attempted_ids:
+            if candidate_id in resolution.candidate_ids:
+                self._episode_state.record_resolution_inspection(resolution.resolution_id, candidate_id)
+        return {"used": True, "resolution_id": resolution.resolution_id, "state": resolution.to_dict()}
+
     def apply_policy_repair_if_needed(
         self,
         action: Action,
@@ -5082,14 +5143,17 @@ class GoalGraphAgent(Agent):
         return action
 
     def plan_action(self, messages: List[Dict[str, Any]], previous_source: str) -> tuple[Action, dict[str, Any], float]:
+        legal_action, legal_result = self.runtime_legal_transition_action()
+        if legal_action is not None:
+            return legal_action, legal_result, 0.0
         preflight_action, preflight_result = self.preflight_action(messages)
         if preflight_action is not None:
             return preflight_action, preflight_result, 0.0
 
         request = self.build_request(messages, previous_source)
         binding_request = self.build_binding_request(messages, previous_source)
-        execution_history = execution_history_from_messages(messages)
-        input_goal_ledger = deepcopy(self._stateful_goal_ledger)
+        execution_history = self._episode_state.execution_history()
+        input_goal_ledger = self._episode_state.goal_ledger()
         start = time.time()
         result = plan_and_compile_goal_graph(
             self.model_obj,
@@ -5105,17 +5169,29 @@ class GoalGraphAgent(Agent):
             stateful=True,
             binding_request=binding_request,
             execution_history=execution_history,
-            stateful_goal_ledger=self._stateful_goal_ledger,
-            stateful_goal_ledger_required=True,
+            stateful_goal_ledger=input_goal_ledger,
+            stateful_goal_ledger_required=False,
             stateful_semantic_only=True,
             stateful_semantic_review=True,
         )
         if self.replay_trace_enabled:
             result["planning_request"] = request
             result["stateful_goal_ledger_input"] = input_goal_ledger
-        updated_goal_ledger = result.get("stateful_goal_ledger")
-        if isinstance(updated_goal_ledger, dict):
-            self._stateful_goal_ledger = updated_goal_ledger
+            result["episode_state"] = self._episode_state.to_dict(include_events=True)
+        requested_fact_delta = result.get("stateful_requested_fact_delta")
+        requested_fact_application = self._episode_state.apply_requested_fact_delta(
+            requested_fact_delta,
+            source_event_id=self._episode_state.latest_user_event_id(),
+        )
+        result["stateful_requested_fact_delta_application"] = requested_fact_application
+        goal_delta = result.get("stateful_goal_delta")
+        goal_delta_application = self._episode_state.apply_goal_delta(
+            goal_delta,
+            source_event_id=self._episode_state.latest_user_event_id(),
+        )
+        result["stateful_goal_delta_application"] = goal_delta_application
+        result["stateful_goal_ledger"] = self._episode_state.goal_ledger()
+        result["runtime_collection_resolution"] = self.admit_collection_resolution(result)
         latency_ms = round((time.time() - start) * 1000, 3)
         action = action_from_goal_graph_result(
             result,
@@ -5193,7 +5269,8 @@ class GoalGraphAgent(Agent):
         info = model_to_dict(reset.info)
         reward = 0.0
         previous_source = "user"
-        self._stateful_goal_ledger = {}
+        self._episode_state = EpisodeState()
+        self._episode_state.record_user_message(reset.observation)
         messages: List[Dict[str, Any]] = [
             {"role": "system", "content": self.wiki},
             {"role": "user", "content": reset.observation},
@@ -5278,8 +5355,18 @@ class GoalGraphAgent(Agent):
             )
             if action.name != RESPOND_ACTION_NAME:
                 messages.append({"role": "tool", "name": action.name, "content": response.observation})
+                self._episode_state.record_tool_result(
+                    action.name,
+                    action.kwargs,
+                    response.observation,
+                    success=not tool_observation_failed(response.observation),
+                )
+                inspected_resolutions = self._episode_state.record_resolution_lookup(action.name, action.kwargs)
+                if inspected_resolutions:
+                    diag["runtime_resolution_lookups"] = inspected_resolutions
             else:
                 messages.append({"role": "user", "content": response.observation})
+                self._episode_state.record_user_message(response.observation)
 
             if response.done:
                 # A simulator may stop immediately after replying to a clarification.
@@ -5325,6 +5412,18 @@ class GoalGraphAgent(Agent):
                         messages.append(
                             {"role": "tool", "name": final_action.name, "content": final_response.observation}
                         )
+                        self._episode_state.record_tool_result(
+                            final_action.name,
+                            final_action.kwargs,
+                            final_response.observation,
+                            success=not tool_observation_failed(final_response.observation),
+                        )
+                        inspected_resolutions = self._episode_state.record_resolution_lookup(
+                            final_action.name,
+                            final_action.kwargs,
+                        )
+                        if inspected_resolutions:
+                            final_diag["runtime_resolution_lookups"] = inspected_resolutions
                 break
 
         if info.get("reward_info") is None:

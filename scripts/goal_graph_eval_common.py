@@ -449,6 +449,24 @@ def _plan_and_compile_goal_graph_stepwise(
             binding_plan = repaired_plan
             binding_recovery_plan = repaired_plan
             semantic_terminal_veto_active = False
+    stateful_collection_disambiguation: dict[str, Any] = {"used": False}
+    if (
+        stateful
+        and not binding_plan.get("calls")
+        and _stateful_plan_defers_to_user_or_terminal(binding_plan, tools)
+    ):
+        collection_read_plan = _stateful_next_collection_readonly_plan(
+            binding_text,
+            runtime,
+            completed_calls,
+        )
+        if collection_read_plan is not None:
+            binding_plan = collection_read_plan
+            binding_recovery_plan = collection_read_plan
+            semantic_terminal_veto_active = False
+            stateful_collection_disambiguation = dict(
+                collection_read_plan.get("stateful_collection_disambiguation") or {"used": True}
+            )
     if stateful and not stateful_semantic_only:
         read_first_plan = _stateful_readonly_progress_plan(binding_text, binding_plan, runtime, tools)
         if read_first_plan is not None:
@@ -854,11 +872,15 @@ def _plan_and_compile_goal_graph_stepwise(
 
     verification_ok = bool(verification and verification.ok)
     output_goal_ledger = _stateful_goal_ledger_from_binding_plan(binding_plan, stateful_goal_ledger)
+    output_goal_delta = _stateful_goal_delta_from_binding_plan(binding_plan)
+    output_requested_fact_delta = _stateful_requested_fact_delta_from_binding_plan(binding_plan)
     return {
         "planner_mode": "stepwise",
         "stateful": stateful,
         "stateful_execution_history": completed_calls,
         "stateful_goal_ledger": output_goal_ledger,
+        "stateful_goal_delta": output_goal_delta,
+        "stateful_requested_fact_delta": output_requested_fact_delta,
         "binding_request": binding_text,
         "binding_request_separate": binding_text != user_request,
         "raw_text": semantic_output.get("raw_text") or "",
@@ -926,6 +948,7 @@ def _plan_and_compile_goal_graph_stepwise(
         "stateful_raw_safety_filter": stateful_raw_safety_filter,
         "stateful_progress_filter": stateful_progress_filter,
         "stateful_schema_recovery": stateful_schema_recovery,
+        "stateful_collection_disambiguation": stateful_collection_disambiguation,
         "stateful_single_call_execution": stateful_single_call_execution,
         "stateful_progress_repair": stateful_progress_repair,
         "semantic_enum_grounding": semantic_enum_grounding,
@@ -1245,6 +1268,36 @@ def _stateful_goal_ledger_from_binding_plan(
     return _merge_stateful_goal_ledgers(fallback, proposed)
 
 
+def _stateful_goal_delta_from_binding_plan(binding_plan: dict[str, Any]) -> dict[str, Any]:
+    """Expose an additive goal proposal without giving it ledger authority.
+
+    The live runtime validates and applies this object.  Static benchmarks can
+    ignore it, and the compiler never treats it as tool-call evidence.
+    """
+    capability_plan = binding_plan.get("capability_plan") if isinstance(binding_plan, dict) else None
+    frame = capability_plan.get("semantic_input_frame") if isinstance(capability_plan, dict) else None
+    delta = frame.get("goal_delta") if isinstance(frame, dict) else None
+    if not isinstance(delta, dict):
+        return {}
+    additions = delta.get("add")
+    if not isinstance(additions, list):
+        return {}
+    return {"add": copy.deepcopy(additions[:16])}
+
+
+def _stateful_requested_fact_delta_from_binding_plan(binding_plan: dict[str, Any]) -> dict[str, Any]:
+    """Return only proposed requested-state updates for runtime validation."""
+    capability_plan = binding_plan.get("capability_plan") if isinstance(binding_plan, dict) else None
+    frame = capability_plan.get("semantic_input_frame") if isinstance(capability_plan, dict) else None
+    delta = frame.get("requested_fact_delta") if isinstance(frame, dict) else None
+    if not isinstance(delta, dict):
+        return {}
+    updates = delta.get("set")
+    if not isinstance(updates, list):
+        return {}
+    return {"set": copy.deepcopy(updates[:16])}
+
+
 def _merge_stateful_goal_ledgers(
     previous: dict[str, Any] | None,
     proposed: dict[str, Any] | None,
@@ -1547,6 +1600,111 @@ def _stateful_bounded_readonly_disambiguation(
                     ),
                 }
     return {"allowed": False}
+
+
+def _stateful_next_collection_readonly_plan(
+    binding_text: str,
+    runtime: GoalGraphRuntime,
+    completed_calls: list[dict[str, Any]],
+) -> dict[str, Any] | None:
+    """Continue one already-started, source-audited read-only record search.
+
+    A candidate collection is not a target selection.  After one member has
+    been read, a terminal decision must not strand the search while a single
+    compatible read-only route has uninspected members.  This helper only
+    resumes that existing search with the next audited value; it never emits a
+    mutation and it requires a unique tool/input route.
+    """
+    facts = _stateful_verified_observation_facts(completed_calls)
+    if not facts:
+        return None
+
+    routes: list[tuple[Any, str, list[Any], set[str]]] = []
+    for capability in runtime.registry.values():
+        if (
+            capability.risk != "read_only"
+            or capability.kind not in {"resolve", "retrieve", "search", "rank", "decide"}
+            or len(capability.required_inputs) != 1
+        ):
+            continue
+        input_name = next(iter(capability.required_inputs))
+        attempted = {
+            json.dumps(
+                (item.get("arguments") if isinstance(item.get("arguments"), dict) else {}).get(input_name),
+                sort_keys=True,
+                default=str,
+            )
+            for item in completed_calls
+            if isinstance(item, dict)
+            and str(item.get("tool_name") or "") == capability.tool_name
+            and str(item.get("outcome") or "").lower() in {"success", "succeeded", "ok", "completed"}
+            and input_name in (item.get("arguments") if isinstance(item.get("arguments"), dict) else {})
+        }
+        if not attempted:
+            continue
+        seen_collections: set[tuple[str, tuple[str, ...]]] = set()
+        for fact in facts:
+            candidates = _stateful_collection_candidates_for_missing_input(input_name, fact, facts)
+            values = [item.get("value") for item in candidates if isinstance(item, dict)]
+            values = [value for value in values if isinstance(value, (str, int, float, bool))]
+            signature = (
+                str(fact.get("path") or "").split("[", 1)[0],
+                tuple(json.dumps(value, sort_keys=True, default=str) for value in values),
+            )
+            if len(values) > 1 and signature not in seen_collections:
+                seen_collections.add(signature)
+                routes.append((capability, input_name, values, attempted))
+
+    # Several unrelated collections are genuinely ambiguous and remain
+    # model-owned. A single route can safely enumerate its audited records.
+    unique_routes: dict[tuple[str, str, tuple[str, ...]], tuple[Any, str, list[Any], set[str]]] = {}
+    for capability, input_name, values, attempted in routes:
+        key = (
+            capability.tool_name,
+            input_name,
+            tuple(json.dumps(value, sort_keys=True, default=str) for value in values),
+        )
+        unique_routes[key] = (capability, input_name, values, attempted)
+    if len(unique_routes) != 1:
+        return None
+    capability, input_name, values, attempted = next(iter(unique_routes.values()))
+    next_value = next(
+        (value for value in values if json.dumps(value, sort_keys=True, default=str) not in attempted),
+        None,
+    )
+    if next_value is None:
+        return None
+    evidence = _fallback_evidence(next_value, binding_text)
+    return {
+        "tool_decision": "call",
+        "reason": "continue source-audited read-only disambiguation before requesting unrelated input",
+        "calls": [
+            {
+                "id": "call_1",
+                "tool_name": capability.tool_name,
+                "arguments": {input_name: next_value},
+                "argument_evidence": {input_name: evidence},
+                "depends_on": [],
+                "missing_arguments": [],
+            }
+        ],
+        "missing_inputs": [],
+        "stateful_collection_disambiguation": {
+            "used": True,
+            "tool_name": capability.tool_name,
+            "input_name": input_name,
+            "candidate_ids": [str(value) for value in values],
+            "attempted_ids": [
+                str(value)
+                for value in values
+                if json.dumps(value, sort_keys=True, default=str) in attempted
+            ],
+            "attempted_count": len(attempted),
+            "remaining_count": sum(
+                1 for value in values if json.dumps(value, sort_keys=True, default=str) not in attempted
+            ),
+        },
+    }
 
 
 def _terminal_reviewer_restates_candidate_decision(
@@ -4279,6 +4437,28 @@ def build_tool_binding_frame_messages(
                         else ""
                     ),
                     (
+                        "- The runtime owns the goal ledger. Do not return goal_ledger or mark any goal "
+                        "completed, cancelled, or failed. When the current user turn introduces a concrete "
+                        "new obligation, you may return goal_delta with an add list. Each addition needs "
+                        "goal_id, kind (identify/retrieve/mutate/communicate), objective, optional "
+                        "target_expression, optional quantifier, dependencies, and evidence_ids. Goal "
+                        "deltas are proposals only: they cannot change or remove an existing goal. Do not "
+                        "create a meta-goal such as 'continue task'.\n"
+                        if stateful and not stateful_goal_ledger_required
+                        else ""
+                    ),
+                    (
+                        "- When the latest user turn corrects or adds a desired value, you may return "
+                        "requested_fact_delta with a set list. Each item needs subject "
+                        "({entity_type, entity_id}), predicate, value, and evidence copied exactly from "
+                        "that latest user turn. Do not emit current environment values as requested facts. "
+                        "Do not use a subject identifier unless it appears in the user turn or a recorded "
+                        "observation. The runtime validates evidence, identity, supersession, and request "
+                        "revision; a delta is not itself state.\n"
+                        if stateful and not stateful_goal_ledger_required
+                        else ""
+                    ),
+                    (
                         "- This is a stateful progress repair. Select a different grounded next action "
                         "that can use the observed state, or ask_user with precise missing_inputs. "
                         "Do not repeat any execution_history action. Before asking the user, inspect "
@@ -4312,10 +4492,18 @@ def build_tool_binding_frame_messages(
                     "call_groups list with expected_call_count; tool_bindings list with "
                     "tool_name, call_count, argument_groups, arguments, evidence_spans; "
                     "missing_inputs list; optional clarification_message string; optional response_message string; "
-                    + ("required" if stateful_goal_ledger_required else "optional")
-                    + " goal_ledger "
-                    "object with goals ({id, objective, status, depends_on}) and next_goal_id.\n"
-                    f"Input:{_compact_json(payload)}",
+                    + (
+                        "required goal_ledger object with goals ({id, objective, status, depends_on}) and next_goal_id.\n"
+                        if stateful_goal_ledger_required
+                        else (
+                            "optional goal_delta object with add (goal_id, kind, objective, target_expression, "
+                            "quantifier, dependencies, evidence_ids); optional requested_fact_delta object with "
+                            "set (subject, predicate, value, evidence). Do not emit goal_ledger.\n"
+                            if stateful
+                            else ""
+                        )
+                    )
+                    + f"Input:{_compact_json(payload)}",
                 ]
             ),
         },

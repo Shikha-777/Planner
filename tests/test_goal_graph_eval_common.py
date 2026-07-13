@@ -17,6 +17,7 @@ from scripts.goal_graph_eval_common import (
     _stateful_readonly_progress_plan,
     _stateful_active_user_turn,
     _stateful_missing_input_evidence_adjudication,
+    _stateful_next_collection_readonly_plan,
     _drop_successfully_replayed_calls,
     _generate_semantic_frame,
     _limit_stateful_plan_to_one_call,
@@ -654,6 +655,23 @@ def test_stateful_semantic_binding_prompt_requires_goal_ledger_when_requested():
     assert "never use meta-goals" in messages[-1]["content"]
 
 
+def test_runtime_owned_stateful_prompt_requests_only_additive_goal_delta():
+    messages = build_tool_binding_frame_messages(
+        "Cancel the matching reservation.",
+        [],
+        stateful=True,
+        stateful_goal_ledger_required=False,
+    )
+
+    prompt = messages[-1]["content"]
+
+    assert "The runtime owns the goal ledger" in prompt
+    assert "optional goal_delta object" in prompt
+    assert "requested_fact_delta" in prompt
+    assert "Do not emit goal_ledger" in prompt
+    assert "goal_ledger is REQUIRED" not in prompt
+
+
 def test_stateful_goal_ledger_normalizes_malformed_dependency_shape():
     ledger = _normalize_stateful_goal_ledger(
         {
@@ -999,6 +1017,46 @@ def test_stateful_candidate_reviewer_preserves_verified_bounded_readonly_disambi
 
     assert review["allowed"] is True
     assert review["overridden"] is True
+
+
+def test_stateful_continues_one_started_readonly_collection_search():
+    tools = [
+        {
+            "name": "get_record",
+            "description": "Retrieve details for one record.",
+            "parameters": {
+                "type": "object",
+                "properties": {"record_id": {"type": "string"}},
+                "required": ["record_id"],
+            },
+        }
+    ]
+    plan = _stateful_next_collection_readonly_plan(
+        "Find the matching record among R-1, R-2, and R-3.",
+        GoalGraphRuntime(tools),
+        [
+            {"tool_name": "get_profile", "outcome": "success", "observation": {"records": ["R-1", "R-2", "R-3"]}},
+            {
+                "tool_name": "get_record",
+                "arguments": {"record_id": "R-1"},
+                "outcome": "success",
+                "observation": {"record_id": "R-1", "matches": False},
+            },
+        ],
+    )
+
+    assert plan is not None
+    assert plan["calls"] == [
+        {
+            "id": "call_1",
+            "tool_name": "get_record",
+            "arguments": {"record_id": "R-2"},
+            "argument_evidence": {"record_id": "R-2"},
+            "depends_on": [],
+            "missing_arguments": [],
+        }
+    ]
+    assert plan["stateful_collection_disambiguation"]["used"] is True
 
 
 def test_stateful_candidate_reviewer_rejects_an_explicit_rejection():
