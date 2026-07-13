@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+#BSUB -J taskdecomp_prepare
+#BSUB -q general
+#BSUB -g /dshrestha/taskdecomp
+#BSUB -G compute-yvorobeychik
+#BSUB -n 2
+#BSUB -M 16GB
+#BSUB -R "rusage[mem=16GB]"
+#BSUB -oo logs/prepare.%J.out
+#BSUB -eo logs/prepare.%J.err
+#BSUB -a "docker(python:3.11-slim)"
+
+set -euo pipefail
+
+cd "${PROJECT_DIR:-/storage3/fs1/yvorobeychik/Active/dshrestha/taskdecomp-gpt-oss}"
+mkdir -p logs data/raw data/processed
+export PYTHONPATH="${PWD}/src"
+python scripts/prepare_data.py --raw-dir data/raw --out-dir data/processed

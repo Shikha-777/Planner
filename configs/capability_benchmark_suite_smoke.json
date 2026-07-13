@@ -1,0 +1,15 @@
+{
+  "planner_mode": "rules_first",
+  "model": "openai/gpt-oss-20b",
+  "max_new_tokens": 1200,
+  "gold_root": "data/capability_planning/benchmark_suite_smoke",
+  "output_root": "results/capability_benchmark_suite_smoke",
+  "benchmarks": [
+    {
+      "name": "adapter_smoke",
+      "input": "data/benchmarks/capability_benchmark_adapter_smoke.jsonl",
+      "dataset": "auto",
+      "source_wrapper": "auto"
+    }
+  ]
+}

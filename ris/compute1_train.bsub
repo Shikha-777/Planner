@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+#BSUB -J taskdecomp_sft
+#BSUB -q general
+#BSUB -g /dshrestha/taskdecomp
+#BSUB -G compute-yvorobeychik
+#BSUB -n 8
+#BSUB -M 96GB
+#BSUB -R "select[gpuhost] rusage[mem=96GB]"
+#BSUB -gpu "num=1:j_exclusive=yes"
+#BSUB -W 24:00
+#BSUB -oo logs/train.%J.out
+#BSUB -eo logs/train.%J.err
+#BSUB -a "docker(nvcr.io/nvidia/pytorch:25.04-py3)"
+
+set -euo pipefail
+
+cd "${PROJECT_DIR:-/storage3/fs1/yvorobeychik/Active/dshrestha/taskdecomp-gpt-oss}"
+mkdir -p logs checkpoints results
+bash scripts/bootstrap_env.sh
+
+.venv/bin/python scripts/train_sft.py \
+  --model "${BASE_MODEL:-Qwen/Qwen3-14B}" \
+  --train data/processed/train.sft.jsonl \
+  --validation data/processed/validation.sft.jsonl \
+  --output-dir checkpoints/qwen3-14b-taskdecomp-lora

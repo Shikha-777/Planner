@@ -1,0 +1,5 @@
+{"id":"A","label":"Multi-constraint event planning","task":"Plan a school cultural night for 150 guests with a $1,000 budget, 20 student volunteers, food booths, performances, decorations, cleanup, and a 6-week timeline.","context":""}
+{"id":"B","label":"Software project with dependencies","task":"Plan the development of a homework planner app with accounts, assignments, reminders, calendar view, progress tracking, and a simple mobile-friendly interface.","context":""}
+{"id":"C","label":"Research-to-product task","task":"Plan how to research, design, prototype, test, and present a reusable water bottle for students who play sports after school.","context":""}
+{"id":"D","label":"Disaster-recovery planning, safe version","task":"Create a family emergency communication plan for bad weather, including contact lists, meeting places, phone charging, supplies checklist, and practice schedule.","context":""}
+{"id":"E","label":"Full creative production","task":"Plan the creation of a 10-minute short film, including script, casting, filming locations, props, shooting schedule, editing, sound, credits, and screening.","context":""}

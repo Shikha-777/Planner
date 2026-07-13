@@ -1,0 +1,51 @@
+{
+  "schema": "trace_decomp_v1",
+  "out_dir": "/Users/deepshikhashrestha/Documents/Project I/data/trace_decomp",
+  "sources": [
+    "swe-agent",
+    "openhands",
+    "mind2web"
+  ],
+  "max_records_per_source": 50,
+  "validation_ratio": 0.05,
+  "seed": 41,
+  "max_trace_events": 24,
+  "max_text_chars": 600,
+  "counts": {
+    "records": 150,
+    "train": 143,
+    "validation": 7,
+    "annotation_queue": 66,
+    "success": 84,
+    "failure": 66,
+    "unknown": 0
+  },
+  "by_source": {
+    "swe-agent": {
+      "records": 50,
+      "train": 50,
+      "validation": 0,
+      "annotation_queue": 39
+    },
+    "openhands": {
+      "records": 50,
+      "train": 45,
+      "validation": 5,
+      "annotation_queue": 27
+    },
+    "mind2web": {
+      "records": 50,
+      "train": 48,
+      "validation": 2,
+      "annotation_queue": 0
+    }
+  },
+  "errors": [],
+  "files": {
+    "train_records": "data/trace_decomp/train.records.jsonl",
+    "validation_records": "data/trace_decomp/validation.records.jsonl",
+    "train_sft": "data/trace_decomp/train.sft.jsonl",
+    "validation_sft": "data/trace_decomp/validation.sft.jsonl",
+    "annotation_queue": "data/trace_decomp/annotation_queue.jsonl"
+  }
+}

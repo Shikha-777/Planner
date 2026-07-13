@@ -1,0 +1,27 @@
+{
+  "planner_mode": "rules_first",
+  "model": "openai/gpt-oss-20b",
+  "max_new_tokens": 1200,
+  "gold_root": "data/capability_planning/benchmark_suite_tool_code",
+  "output_root": "results/capability_benchmark_benchmark_suite_tool_code",
+  "benchmarks": [
+    {
+      "name": "bfcl_sql",
+      "input": "data/benchmarks/public_slices/tool_code/bfcl_sql_real_wrapped.jsonl",
+      "dataset": "bfcl",
+      "source_wrapper": "auto"
+    },
+    {
+      "name": "swe_bench_lite",
+      "input": "data/benchmarks/public_slices/tool_code/swe_bench_lite_real.jsonl",
+      "dataset": "swe_bench",
+      "source_wrapper": "auto"
+    },
+    {
+      "name": "webarena_mini",
+      "input": "data/benchmarks/public_slices/tool_code/webarena_mini_real_wrapped.jsonl",
+      "dataset": "webarena",
+      "source_wrapper": "auto"
+    }
+  ]
+}

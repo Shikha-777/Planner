@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+#BSUB -J taskdecomp_eval
+#BSUB -q general
+#BSUB -g /dshrestha/taskdecomp
+#BSUB -G compute-yvorobeychik
+#BSUB -n 4
+#BSUB -M 64GB
+#BSUB -R "select[gpuhost] rusage[mem=64GB]"
+#BSUB -gpu "num=1:j_exclusive=yes"
+#BSUB -W 08:00
+#BSUB -oo logs/eval.%J.out
+#BSUB -eo logs/eval.%J.err
+#BSUB -a "docker(nvcr.io/nvidia/pytorch:25.04-py3)"
+
+set -euo pipefail
+
+cd "${PROJECT_DIR:-/storage3/fs1/yvorobeychik/Active/dshrestha/taskdecomp-gpt-oss}"
+mkdir -p logs results
+bash scripts/bootstrap_env.sh
+
+.venv/bin/python scripts/predict_jsonl.py \
+  --model "${MODEL_PATH:-checkpoints/qwen3-14b-taskdecomp-lora}" \
+  --input data/processed/test.eval.jsonl \
+  --output results/predictions.jsonl
+
+.venv/bin/python -m taskdecomp.evaluate \
+  --predictions results/predictions.jsonl \
+  --references data/processed/test.eval.jsonl \
+  --out results/metrics.json

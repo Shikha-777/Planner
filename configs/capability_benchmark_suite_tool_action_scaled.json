@@ -1,0 +1,49 @@
+{
+  "planner_mode": "rules_first",
+  "model": "openai/gpt-oss-20b",
+  "max_new_tokens": 1200,
+  "gold_root": "data/capability_planning/benchmark_suite_tool_action_scaled",
+  "output_root": "results/capability_benchmark_benchmark_suite_tool_action_scaled",
+  "benchmarks": [
+    {
+      "name": "bfcl_simple_tool",
+      "input": "data/benchmarks/tool_action_slices/tool_external/bfcl_simple_tool.gold.jsonl",
+      "dataset": "auto"
+    },
+    {
+      "name": "bfcl_multiple_tool",
+      "input": "data/benchmarks/tool_action_slices/tool_external/bfcl_multiple_tool.gold.jsonl",
+      "dataset": "auto"
+    },
+    {
+      "name": "bfcl_parallel_tool",
+      "input": "data/benchmarks/tool_action_slices/tool_external/bfcl_parallel_tool.gold.jsonl",
+      "dataset": "auto"
+    },
+    {
+      "name": "bfcl_rest_tool",
+      "input": "data/benchmarks/tool_action_slices/tool_external/bfcl_rest_tool.gold.jsonl",
+      "dataset": "auto"
+    },
+    {
+      "name": "bfcl_irrelevance_no_tool",
+      "input": "data/benchmarks/tool_action_slices/controls/bfcl_irrelevance_no_tool.gold.jsonl",
+      "dataset": "auto"
+    },
+    {
+      "name": "vakra_bpo_tool",
+      "input": "data/benchmarks/tool_action_slices/tool_external/vakra_bpo_tool.gold.jsonl",
+      "dataset": "auto"
+    },
+    {
+      "name": "swe_bench_lite",
+      "input": "data/benchmarks/tool_action_slices/code_web/swe_bench_lite_real.jsonl",
+      "dataset": "swe_bench"
+    },
+    {
+      "name": "webarena_mini",
+      "input": "data/benchmarks/tool_action_slices/code_web/webarena_mini_real_wrapped.jsonl",
+      "dataset": "webarena"
+    }
+  ]
+}

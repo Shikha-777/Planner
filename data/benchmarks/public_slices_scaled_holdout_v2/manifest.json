@@ -1,0 +1,150 @@
+{
+  "suite_label": "scaled_holdout_v2",
+  "offsets": {
+    "clinc_split": "validation",
+    "clinc_offset_per_intent": 0,
+    "massive_split": "train",
+    "massive_offset_per_label": 0,
+    "superni_offset_per_task": 25,
+    "bfcl_offset": 50,
+    "swe_offset": 25,
+    "webarena_offset": 28,
+    "local_controls_variant": "holdout_v2"
+  },
+  "prepared": [
+    {
+      "name": "clinc_intent",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/clinc_intent_real.jsonl",
+      "row_count": 100,
+      "metadata": {
+        "source": "clinc/clinc_oos",
+        "config": "small",
+        "split": "validation",
+        "offset_per_intent": 0,
+        "counts": {
+          "weather": 20,
+          "exchange_rate": 20,
+          "definition": 20,
+          "translate": 20,
+          "oos": 20
+        }
+      }
+    },
+    {
+      "name": "massive_intent",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/massive_intent_en_real.jsonl",
+      "row_count": 100,
+      "metadata": {
+        "source": "mteb/amazon_massive_intent",
+        "file": "train/en.json.gz",
+        "offset_per_label": 0,
+        "counts": {
+          "weather_query": 25,
+          "qa_stock": 25,
+          "email_sendemail": 25,
+          "qa_definition": 25
+        }
+      }
+    },
+    {
+      "name": "local_intent_controls",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/local_intent_controls.jsonl",
+      "row_count": 3,
+      "metadata": {
+        "source": "local_controls",
+        "variant": "holdout_v2",
+        "rows": 3
+      }
+    },
+    {
+      "name": "superni_summarize",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/superni_summarize_real.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "Muennighoff/natural-instructions",
+        "file": "test/task645_summarization_test.jsonl",
+        "offset": 25,
+        "rows": 25
+      }
+    },
+    {
+      "name": "superni_classify",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/superni_classify_real.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "Muennighoff/natural-instructions",
+        "file": "test/task1344_glue_entailment_classification_test.jsonl",
+        "offset": 25,
+        "rows": 25
+      }
+    },
+    {
+      "name": "superni_rewrite",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/superni_rewrite_real.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "Muennighoff/natural-instructions",
+        "file": "test/task121_zest_text_modification_test.jsonl",
+        "offset": 25,
+        "rows": 25
+      }
+    },
+    {
+      "name": "superni_extract",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/superni_extract_real.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "Muennighoff/natural-instructions",
+        "file": "test/task1540_parsed_pdfs_summarization_test.jsonl",
+        "offset": 25,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_sql",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices_scaled_holdout_v2/tool_code/bfcl_sql_real_wrapped.jsonl",
+      "row_count": 50,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "file": "BFCL_v3_sql.json",
+        "offset": 50,
+        "rows": 50
+      }
+    },
+    {
+      "name": "swe_bench_lite",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices_scaled_holdout_v2/tool_code/swe_bench_lite_real.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "princeton-nlp/SWE-bench_Lite",
+        "split": "test[25:50]",
+        "rows": 25
+      }
+    },
+    {
+      "name": "webarena_mini",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices_scaled_holdout_v2/tool_code/webarena_mini_real_wrapped.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "WPRM/mini_benchmark_webarena",
+        "split": "test[28:53]",
+        "rows": 25
+      }
+    }
+  ],
+  "configs": [
+    "configs/capability_benchmark_suite_source_intent_scaled_holdout_v2.json",
+    "configs/capability_benchmark_suite_tool_code_scaled_holdout_v2.json",
+    "configs/capability_benchmark_suite_all_scaled_holdout_v2.json"
+  ]
+}

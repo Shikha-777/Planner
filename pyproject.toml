@@ -1,0 +1,17 @@
+[project]
+name = "taskdecomp-gpt-oss"
+version = "0.1.0"
+description = "Task decomposition and decomposition-gating pipeline using Qwen 14B."
+requires-python = ">=3.10"
+dependencies = []
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"

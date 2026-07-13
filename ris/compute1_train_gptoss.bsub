@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+#BSUB -J taskdecomp_sft_gptoss
+#BSUB -q general
+#BSUB -g /dshrestha/taskdecomp
+#BSUB -G compute-yvorobeychik
+#BSUB -n 8
+#BSUB -M 96GB
+#BSUB -R "select[gpuhost && hname!='compute1-exec-401' && hname!='compute1-exec-208'] rusage[mem=96GB]"
+#BSUB -gpu "num=1:j_exclusive=yes"
+#BSUB -W 24:00
+#BSUB -oo logs/train_gptoss.%J.out
+#BSUB -eo logs/train_gptoss.%J.err
+#BSUB -a "docker(pytorch/pytorch:2.6.0-cuda12.4-cudnn9-devel)"
+
+set -euo pipefail
+
+cd "${PROJECT_DIR:-/storage3/fs1/yvorobeychik/Active/dshrestha/taskdecomp-gpt-oss}"
+export HOME="$PWD"
+export XDG_CACHE_HOME="$PWD/.cache"
+export HF_HOME="$XDG_CACHE_HOME/huggingface"
+export HUGGINGFACE_HUB_CACHE="$HF_HOME/hub"
+export TRANSFORMERS_CACHE="$HF_HOME/transformers"
+export PIP_CACHE_DIR="$XDG_CACHE_HOME/pip"
+export CC="${CC:-gcc}"
+
+mkdir -p logs checkpoints results "$HF_HOME" "$HUGGINGFACE_HUB_CACHE" "$TRANSFORMERS_CACHE" "$PIP_CACHE_DIR"
+PYTHON_BIN=/opt/conda/bin/python bash scripts/bootstrap_env.sh
+
+.venv/bin/python scripts/train_sft.py \
+  --model "${BASE_MODEL:-openai/gpt-oss-20b}" \
+  --train data/processed/train.sft.jsonl \
+  --validation data/processed/validation.sft.jsonl \
+  --output-dir checkpoints/gpt-oss-20b-taskdecomp-lora

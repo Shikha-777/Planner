@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#BSUB -J taskdecomp_gpu_probe
+#BSUB -q general
+#BSUB -g /dshrestha/taskdecomp
+#BSUB -G compute-yvorobeychik
+#BSUB -n 1
+#BSUB -M 8GB
+#BSUB -R "select[gpuhost && hname!='compute1-exec-401' && hname!='compute1-exec-208'] rusage[mem=8GB]"
+#BSUB -gpu "num=1:j_exclusive=yes"
+#BSUB -W 00:15
+#BSUB -oo logs/gpu_probe.%J.out
+#BSUB -eo logs/gpu_probe.%J.err
+#BSUB -a "docker(pytorch/pytorch:2.6.0-cuda12.4-cudnn9-devel)"
+
+set -euo pipefail
+
+nvidia-smi
+/opt/conda/bin/python - <<'PY'
+import torch
+
+print("torch", torch.__version__, "cuda", torch.version.cuda, "available", torch.cuda.is_available())
+if torch.cuda.is_available():
+    props = torch.cuda.get_device_properties(0)
+    print("device", torch.cuda.get_device_name(0))
+    print("capability", torch.cuda.get_device_capability(0))
+    print("total_memory_gb", round(props.total_memory / 1024**3, 2))
+PY

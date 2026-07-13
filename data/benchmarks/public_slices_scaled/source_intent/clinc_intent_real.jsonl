@@ -1,0 +1,100 @@
+{"id": "clinc_translate_001", "utterance": "how would you say fly in italian", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_002", "utterance": "what's the spanish word for pasta", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_003", "utterance": "how would they say butter in zambia", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_004", "utterance": "how do you say fast in spanish", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_005", "utterance": "what's the word for trees in norway", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_006", "utterance": "how does one say wonderful in german", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_007", "utterance": "how do they say tacos in mexico", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_008", "utterance": "how would one say cruiser in china", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_009", "utterance": "what's the french word you use for potato", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_010", "utterance": "what would the word for grass be in finland", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_011", "utterance": "how do you say please in french", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_012", "utterance": "how would i say nice to meet you if i were russian", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_013", "utterance": "what is the right way to say excuse me in spanish", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_014", "utterance": "how do i say i'm sorry in chinese", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_015", "utterance": "how would i say thank you if i were mexican", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_016", "utterance": "how would i say what is your name if i were french", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_017", "utterance": "how would i say i must be going now if i were german", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_018", "utterance": "how do i say bathroom in italian", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_019", "utterance": "how might i say hello if i were scottish", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_020", "utterance": "i must know how to say thank you in german", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_definition_001", "utterance": "define antebellum", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_002", "utterance": "define discontent", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_003", "utterance": "what is the meaning of incandescent", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_004", "utterance": "what does confrontation mean", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_005", "utterance": "what does serendipity mean", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_006", "utterance": "what's the definition of luminescent", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_007", "utterance": "what is the definiton of auspicious", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_008", "utterance": "what does circuitous mean", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_009", "utterance": "what's the definition of unencumbered", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_010", "utterance": "what does adulation mean", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_011", "utterance": "what does assiduous mean", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_012", "utterance": "what does amicable mean", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_013", "utterance": "what's the definition of remunerative", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_014", "utterance": "what does anachronistic mean", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_015", "utterance": "what's the definition of idiosyncratic", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_016", "utterance": "what does yolo mean", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_017", "utterance": "can you tell me the meaning of fluctuate", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_018", "utterance": "what does the word polynomial mean", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_019", "utterance": "what does ferrari mean", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_020", "utterance": "what is the meaning of the word girn", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_001", "utterance": "convert 200 us dollars to british pounds", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_002", "utterance": "how many japanese yen are in a us dollar", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_003", "utterance": "how much is 5 us dollars worth in canadian dollars", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_004", "utterance": "can you tell me what 100 british pounds equals in us dollars", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_005", "utterance": "what is the exchange rate between us dollars and japanese yen", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_006", "utterance": "whats the current exchange rate between usd and eur", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_007", "utterance": "what's the exhange rate between mxn and gbp", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_008", "utterance": "what is the current exchange rate between mxn and eur", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_009", "utterance": "what's the exchange rate between ils and usd", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_010", "utterance": "what is the usd mxn exchange rate", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_011", "utterance": "how many mexican pesos is a us dollar worth", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_012", "utterance": "how much is one us dollar in british pounds", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_013", "utterance": "whats the exchange rate for us dollars to british pounds", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_014", "utterance": "what is a british pound worth in mexican pesos", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_015", "utterance": "how many mexican pesos can i get for one us dollar", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_016", "utterance": "look up the rate of exchange between pesos and usd", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_017", "utterance": "find me the exchange rate between usd and cad", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_018", "utterance": "what is the exchange rate between euros and pesos", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_019", "utterance": "tell me the current exchange rate between cad and euros", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_020", "utterance": "what is the present exchange rate between usd and british pound", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_weather_001", "utterance": "what is the weather", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_002", "utterance": "current weather", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_003", "utterance": "tell me the weather", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_004", "utterance": "what's the weather like today", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_005", "utterance": "what is the weather like", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_006", "utterance": "show me what the weather is like", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_007", "utterance": "let's take a look at the weather", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_008", "utterance": "how is the weather looking in seattle", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_009", "utterance": "how's the weather in seattle", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_010", "utterance": "what is the state of the weather in seattle", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_011", "utterance": "what is the weather forecast looking like for seattle", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_012", "utterance": "what are the weather conditions like in seattle", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_013", "utterance": "what is the weather doing now", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_014", "utterance": "what kind of weather can i expect now", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_015", "utterance": "tell me what the weather is looking like", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_016", "utterance": "how is the weather", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_017", "utterance": "can you tell me the weather forecast", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_018", "utterance": "could you tell me what the weather is in austin", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_019", "utterance": "what is the weather doing in austin", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_020", "utterance": "what about the weather in austin", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_oos_001", "utterance": "how much has the dow changed today", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_002", "utterance": "how many prime numbers are there between 0 and 100", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_003", "utterance": "can you tell me how to solve simple algebraic equations with one variable", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_004", "utterance": "can you dim the brightness of my screen", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_005", "utterance": "what is the account number to the internet service i have", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_006", "utterance": "can you see a hdmi cord", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_007", "utterance": "what veggies can i pair with mushrooms", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_008", "utterance": "can you put the car in fuel efficient mode", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_009", "utterance": "at what age can someone get a card", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_010", "utterance": "please find today's most read stories from the new york times todayi", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_011", "utterance": "how do i get red wine out of a couch cushion", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_012", "utterance": "can you tell me who sells dixie paper plates", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_013", "utterance": "who invented the internet", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_014", "utterance": "what big news happened over the weekend", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_015", "utterance": "what is happening in politicsu", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_016", "utterance": "how is my driving", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_017", "utterance": "is the earth flat", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_018", "utterance": "what is the best way to clean ceiling fans", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_019", "utterance": "please tell me the status of the government shutdown", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_020", "utterance": "what oil is best for chicken", "intent": "oos", "source_dataset": "clinc"}

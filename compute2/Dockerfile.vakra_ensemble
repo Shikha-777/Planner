@@ -1,0 +1,44 @@
+# syntax=docker/dockerfile:1
+#
+# Overlay our current ensemble runner on top of the VAKRA unified MCP image.
+# Build this from the repository root after building/pushing the VAKRA base:
+#
+#   docker buildx build --platform linux/amd64 \
+#     --build-arg VAKRA_BASE_IMAGE=<registry>/vakra-base:amd64 \
+#     -t <registry>/vakra-ensemble:amd64 \
+#     -f compute2/Dockerfile.vakra_ensemble .
+
+ARG VAKRA_BASE_IMAGE=vakra-base:latest
+FROM ${VAKRA_BASE_IMAGE}
+
+WORKDIR /app
+
+# Model/runtime dependencies for the local GPT-OSS adapter bank. Keep these in
+# the overlay so the VAKRA base remains close to upstream.
+RUN python -m pip install --no-cache-dir --upgrade pip && \
+    python -m pip install --no-cache-dir \
+      --index-url https://download.pytorch.org/whl/cu124 \
+      torch && \
+    python -m pip install --no-cache-dir \
+      "accelerate>=1.0.0" \
+      "peft>=0.17.0" \
+      "safetensors>=0.4.5" \
+      "sentencepiece>=0.2.0" \
+      "protobuf>=5.0.0" \
+      "transformers>=4.55.0"
+
+COPY compute2/vakra_mcp_ensemble_runner.py /workspace/scripts/vakra_mcp_ensemble_runner.py
+COPY compute2/tau_ensemble_agent.py /workspace/scripts/tau_ensemble_agent.py
+COPY compute2/run_vakra_inside_container.sh /workspace/scripts/run_vakra_inside_container.sh
+RUN chmod +x /workspace/scripts/run_vakra_inside_container.sh
+
+ENV PYTHONPATH=/workspace/scripts:/app \
+    VAKRA_MCP_LAUNCHER=local \
+    VAKRA_MCP_COMMAND=python \
+    VAKRA_MCP_ARGS=/app/mcp_dispatch.py
+
+# The upstream image's default entrypoint keeps services alive for docker exec.
+# Our compute2 job runs the benchmark directly, so leave command selection to
+# Slurm/Apptainer/Docker.
+ENTRYPOINT []
+CMD ["bash", "/workspace/scripts/run_vakra_inside_container.sh"]

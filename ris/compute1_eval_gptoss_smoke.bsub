@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+#BSUB -J taskdecomp_eval_smoke
+#BSUB -q general
+#BSUB -g /dshrestha/taskdecomp
+#BSUB -G compute-yvorobeychik
+#BSUB -n 4
+#BSUB -M 64GB
+#BSUB -R "select[gpuhost && hname!='compute1-exec-401' && hname!='compute1-exec-208'] rusage[mem=64GB]"
+#BSUB -gpu "num=1:j_exclusive=yes"
+#BSUB -W 01:00
+#BSUB -oo /home/dshrestha/taskdecomp_status/eval_smoke.%J.out
+#BSUB -eo /home/dshrestha/taskdecomp_status/eval_smoke.%J.err
+#BSUB -a "docker(pytorch/pytorch:2.6.0-cuda12.4-cudnn9-devel)"
+
+set -euo pipefail
+
+cd "${PROJECT_DIR:-/storage3/fs1/yvorobeychik/Active/dshrestha/taskdecomp-gpt-oss}"
+export HOME="$PWD"
+export XDG_CACHE_HOME="$PWD/.cache"
+export HF_HOME="$XDG_CACHE_HOME/huggingface"
+export HUGGINGFACE_HUB_CACHE="$HF_HOME/hub"
+export TRANSFORMERS_CACHE="$HF_HOME/transformers"
+export PIP_CACHE_DIR="$XDG_CACHE_HOME/pip"
+export CC="${CC:-gcc}"
+
+PYTHON_BIN=/opt/conda/bin/python bash scripts/bootstrap_env.sh >/tmp/taskdecomp_eval_smoke_bootstrap.log 2>&1
+
+.venv/bin/python scripts/predict_jsonl.py \
+  --model checkpoints/gpt-oss-20b-taskdecomp-lora \
+  --input data/processed/test.eval.jsonl \
+  --output results/predictions_gptoss_smoke.jsonl \
+  --limit 5
+
+.venv/bin/python -m taskdecomp.evaluate \
+  --predictions results/predictions_gptoss_smoke.jsonl \
+  --references data/processed/test.eval.jsonl \
+  --out results/metrics_gptoss_smoke.json
+
+mkdir -p /home/dshrestha/taskdecomp_status
+cp results/metrics_gptoss_smoke.json /home/dshrestha/taskdecomp_status/metrics_gptoss_smoke.json
+head -5 results/predictions_gptoss_smoke.jsonl > /home/dshrestha/taskdecomp_status/predictions_gptoss_smoke.head.jsonl

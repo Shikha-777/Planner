@@ -1,0 +1,130 @@
+{
+  "prepared": [
+    {
+      "name": "clinc_intent",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices/source_intent/clinc_intent_real.jsonl",
+      "row_count": 15,
+      "metadata": {
+        "source": "clinc/clinc_oos",
+        "config": "small",
+        "split": "test",
+        "counts": {
+          "weather": 3,
+          "exchange_rate": 3,
+          "definition": 3,
+          "translate": 3,
+          "oos": 3
+        }
+      }
+    },
+    {
+      "name": "massive_intent",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices/source_intent/massive_intent_en_real.jsonl",
+      "row_count": 12,
+      "metadata": {
+        "source": "mteb/amazon_massive_intent",
+        "file": "test/en.json.gz",
+        "counts": {
+          "weather_query": 3,
+          "qa_stock": 3,
+          "email_sendemail": 3,
+          "qa_definition": 3
+        }
+      }
+    },
+    {
+      "name": "local_intent_controls",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices/source_intent/local_intent_controls.jsonl",
+      "row_count": 3,
+      "metadata": {
+        "source": "local_controls",
+        "rows": 3
+      }
+    },
+    {
+      "name": "superni_summarize",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices/source_intent/superni_summarize_real.jsonl",
+      "row_count": 3,
+      "metadata": {
+        "source": "Muennighoff/natural-instructions",
+        "file": "test/task645_summarization_test.jsonl",
+        "rows": 3
+      }
+    },
+    {
+      "name": "superni_classify",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices/source_intent/superni_classify_real.jsonl",
+      "row_count": 3,
+      "metadata": {
+        "source": "Muennighoff/natural-instructions",
+        "file": "test/task1344_glue_entailment_classification_test.jsonl",
+        "rows": 3
+      }
+    },
+    {
+      "name": "superni_rewrite",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices/source_intent/superni_rewrite_real.jsonl",
+      "row_count": 3,
+      "metadata": {
+        "source": "Muennighoff/natural-instructions",
+        "file": "test/task121_zest_text_modification_test.jsonl",
+        "rows": 3
+      }
+    },
+    {
+      "name": "superni_extract",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices/source_intent/superni_extract_real.jsonl",
+      "row_count": 3,
+      "metadata": {
+        "source": "Muennighoff/natural-instructions",
+        "file": "test/task1540_parsed_pdfs_summarization_test.jsonl",
+        "rows": 3
+      }
+    },
+    {
+      "name": "bfcl_sql",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices/tool_code/bfcl_sql_real_wrapped.jsonl",
+      "row_count": 4,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "file": "BFCL_v3_sql.json",
+        "rows": 4
+      }
+    },
+    {
+      "name": "swe_bench_lite",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices/tool_code/swe_bench_lite_real.jsonl",
+      "row_count": 4,
+      "metadata": {
+        "source": "princeton-nlp/SWE-bench_Lite",
+        "split": "test",
+        "rows": 4
+      }
+    },
+    {
+      "name": "webarena_mini",
+      "status": "prepared",
+      "path": "data/benchmarks/public_slices/tool_code/webarena_mini_real_wrapped.jsonl",
+      "row_count": 4,
+      "metadata": {
+        "source": "WPRM/mini_benchmark_webarena",
+        "split": "test",
+        "rows": 4
+      }
+    }
+  ],
+  "configs": [
+    "configs/capability_benchmark_suite_source_intent.json",
+    "configs/capability_benchmark_suite_tool_code.json",
+    "configs/capability_benchmark_suite_all.json"
+  ]
+}

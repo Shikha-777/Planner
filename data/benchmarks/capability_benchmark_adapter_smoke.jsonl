@@ -1,0 +1,9 @@
+{"id":"clinc_weather_001","utterance":"Will it rain in Denver tomorrow morning?","intent":"weather"}
+{"id":"clinc_missing_resume_001","utterance":"Can you improve my resume summary?","intent":"resume_edit"}
+{"id":"massive_draft_001","utt":"Draft a short email saying onboarding is complete and support coverage starts Monday.","intent":"email_compose"}
+{"id":"sni_task_001","Definition":["Write a short summary of the provided text."],"Categories":["Summarization"],"Instances":[{"id":"sni_summary_current_001","input":"The current renewal term starts today and SELECT users can switch plans."},{"id":"sni_summary_url_002","input":"Visit https://example.com/current/select today to choose a package."}]}
+{"id":"bfcl_sql_001","question":"Write a Postgres query that returns monthly revenue from orders(created_at, total).","category":"sql"}
+{"id":"api_bank_url_001","query":"Summarize https://example.org/blog/current-pricing in four bullets.","domain":"web"}
+{"id":"swe_parser_001","problem_statement":"In src/parser.py, fix the bug that drops the last CSV column and update tests.","repo":"demo/parser"}
+{"id":"repobench_todo_001","prompt":"Find TODOs in the codebase related to payments.","repo":"demo/repo"}
+{"id":"webarena_compare_001","intent":"Compare https://example.com/free and https://example.com/team.","site":"example"}

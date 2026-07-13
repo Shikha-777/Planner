@@ -1,0 +1,127 @@
+{
+  "prepared": [
+    {
+      "name": "bfcl_simple",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_binding/bfcl_simple.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "data_file": "BFCL_v3_simple.json",
+        "answer_file": "possible_answer/BFCL_v3_simple.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_multiple",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_binding/bfcl_multiple.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "data_file": "BFCL_v3_multiple.json",
+        "answer_file": "possible_answer/BFCL_v3_multiple.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_parallel",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_binding/bfcl_parallel.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "data_file": "BFCL_v3_parallel.json",
+        "answer_file": "possible_answer/BFCL_v3_parallel.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_parallel_multiple",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_binding/bfcl_parallel_multiple.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "data_file": "BFCL_v3_parallel_multiple.json",
+        "answer_file": "possible_answer/BFCL_v3_parallel_multiple.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_exec_simple",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_binding/bfcl_exec_simple.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "data_file": "BFCL_v3_exec_simple.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_exec_multiple",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_binding/bfcl_exec_multiple.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "data_file": "BFCL_v3_exec_multiple.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_exec_parallel",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_binding/bfcl_exec_parallel.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "data_file": "BFCL_v3_exec_parallel.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_exec_parallel_multiple",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_binding/bfcl_exec_parallel_multiple.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "data_file": "BFCL_v3_exec_parallel_multiple.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_irrelevance",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_binding/bfcl_irrelevance.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "data_file": "BFCL_v3_irrelevance.json",
+        "offset": 0,
+        "rows": 25
+      }
+    }
+  ],
+  "files": {
+    "bfcl_simple": "data/benchmarks/tool_binding/bfcl_simple.jsonl",
+    "bfcl_multiple": "data/benchmarks/tool_binding/bfcl_multiple.jsonl",
+    "bfcl_parallel": "data/benchmarks/tool_binding/bfcl_parallel.jsonl",
+    "bfcl_parallel_multiple": "data/benchmarks/tool_binding/bfcl_parallel_multiple.jsonl",
+    "bfcl_exec_simple": "data/benchmarks/tool_binding/bfcl_exec_simple.jsonl",
+    "bfcl_exec_multiple": "data/benchmarks/tool_binding/bfcl_exec_multiple.jsonl",
+    "bfcl_exec_parallel": "data/benchmarks/tool_binding/bfcl_exec_parallel.jsonl",
+    "bfcl_exec_parallel_multiple": "data/benchmarks/tool_binding/bfcl_exec_parallel_multiple.jsonl",
+    "bfcl_irrelevance": "data/benchmarks/tool_binding/bfcl_irrelevance.jsonl"
+  }
+}

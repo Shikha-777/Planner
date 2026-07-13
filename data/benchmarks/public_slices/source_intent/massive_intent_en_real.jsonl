@@ -1,0 +1,12 @@
+{"id": "massive_weather_query_001", "utt": "what's the week's forecast", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_002", "utt": "what's this week's weather", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_003", "utt": "tell me the weather this week", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_qa_stock_004", "utt": "please tell me news related to the stock market", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_005", "utt": "email my appointments to reschedule", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_qa_definition_006", "utt": "define elaborate", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_007", "utt": "please define forensic", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_008", "utt": "what is the definition of forensic", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_stock_009", "utt": "what is the increase in stock value over the past week of disney", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_010", "utt": "what is terranova stock going for", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_011", "utt": "please email my team", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_012", "utt": "answer to pawel's email", "intent": "email_sendemail", "source_dataset": "massive"}

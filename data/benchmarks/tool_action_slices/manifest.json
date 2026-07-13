@@ -1,0 +1,104 @@
+{
+  "suite_label": "tool_action_scaled",
+  "prepared": [
+    {
+      "name": "bfcl_simple_tool",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_action_slices/tool_external/bfcl_simple_tool.gold.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "file": "BFCL_v3_simple.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_multiple_tool",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_action_slices/tool_external/bfcl_multiple_tool.gold.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "file": "BFCL_v3_multiple.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_parallel_tool",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_action_slices/tool_external/bfcl_parallel_tool.gold.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "file": "BFCL_v3_parallel.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_rest_tool",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_action_slices/tool_external/bfcl_rest_tool.gold.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "file": "BFCL_v3_rest.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "bfcl_irrelevance_no_tool",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_action_slices/controls/bfcl_irrelevance_no_tool.gold.jsonl",
+      "row_count": 25,
+      "metadata": {
+        "source": "gorilla-llm/Berkeley-Function-Calling-Leaderboard",
+        "file": "BFCL_v3_irrelevance.json",
+        "offset": 0,
+        "rows": 25
+      }
+    },
+    {
+      "name": "vakra_bpo_tool",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_action_slices/tool_external/vakra_bpo_tool.gold.jsonl",
+      "row_count": 18,
+      "metadata": {
+        "source": "external/vakra",
+        "files": [
+          "external/vakra/environment/bpo/data/tasks.json",
+          "external/vakra/environment/bpo/data/tasks_edge_cases.json"
+        ],
+        "offset": 0,
+        "candidate_rows": 18,
+        "rows": 18
+      }
+    },
+    {
+      "name": "swe_bench_lite",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_action_slices/code_web/swe_bench_lite_real.jsonl",
+      "row_count": 50,
+      "metadata": {
+        "source": "princeton-nlp/SWE-bench_Lite",
+        "split": "test[:50]",
+        "rows": 50
+      }
+    },
+    {
+      "name": "webarena_mini",
+      "status": "prepared",
+      "path": "data/benchmarks/tool_action_slices/code_web/webarena_mini_real_wrapped.jsonl",
+      "row_count": 50,
+      "metadata": {
+        "source": "WPRM/mini_benchmark_webarena",
+        "split": "test[:50]",
+        "rows": 50
+      }
+    }
+  ],
+  "config": "configs/capability_benchmark_suite_tool_action_scaled.json"
+}

@@ -1,0 +1,100 @@
+{"id": "massive_weather_query_001", "utt": "what's the week's forecast", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_002", "utt": "what's this week's weather", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_003", "utt": "tell me the weather this week", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_004", "utt": "how is the weather like today", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_005", "utt": "should i bring an umbrella tomorrow", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_006", "utt": "what is today's forecast for berlin", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_007", "utt": "what is the weather", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_008", "utt": "tell me the weather in barcelona in two days from now", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_009", "utt": "what is the weather condition in new york", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_010", "utt": "i wish to know the weather in san fransico", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_011", "utt": "will it be rainy tomorrow", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_012", "utt": "will it rain tomorrow", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_013", "utt": "what is the weather like right now", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_014", "utt": "is it cold outside", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_015", "utt": "by get marks", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_016", "utt": "what is the current weather", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_017", "utt": "summarize week's weather details", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_018", "utt": "how cold is it outside today", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_019", "utt": "what is the weather forecast for this week", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_020", "utt": "mild or heavy weather", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_021", "utt": "what is the current temperature outside", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_022", "utt": "hey what will be the predicted weather for tomorrow", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_023", "utt": "what's the weather like right now in new york", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_024", "utt": "how cold will it get each night this week", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_weather_query_025", "utt": "how is the weather likely to be this week", "intent": "weather_query", "source_dataset": "massive"}
+{"id": "massive_qa_stock_026", "utt": "please tell me news related to the stock market", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_027", "utt": "email my appointments to reschedule", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_qa_definition_028", "utt": "define elaborate", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_029", "utt": "please define forensic", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_030", "utt": "what is the definition of forensic", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_031", "utt": "what does turbulence mean", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_032", "utt": "check definition of capricious", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_033", "utt": "look up the definition of blunder", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_034", "utt": "what are the definitions of orange", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_035", "utt": "tell me all about hurricane", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_036", "utt": "what does oscillate mean", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_037", "utt": "spell and define oscillate", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_038", "utt": "location", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_039", "utt": "what is the definition of the word perpetual", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_040", "utt": "what is the definition of timeliness", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_041", "utt": "give the definition of motivation", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_042", "utt": "what is the largest desk", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_stock_043", "utt": "what is the increase in stock value over the past week of disney", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_definition_044", "utt": "what is a chair", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_045", "utt": "what is an electronic emissions system", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_046", "utt": "describe a rotor", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_047", "utt": "what is a mango", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_stock_048", "utt": "what is terranova stock going for", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_049", "utt": "tell me the current price of exxon mobil stock", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_definition_050", "utt": "can you describe a credit card", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_051", "utt": "what is the definition of subjegant", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_stock_052", "utt": "what happened to the dow jones today", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_053", "utt": "list me the stock of apple right now", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_definition_054", "utt": "what is the definition of logic", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_055", "utt": "how would you describe a happy birthday", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_056", "utt": "the definition of life", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_definition_057", "utt": "define flabbergasted", "intent": "qa_definition", "source_dataset": "massive"}
+{"id": "massive_qa_stock_058", "utt": "how is the stock going in general", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_059", "utt": "facebook current stock rate", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_060", "utt": "what is googs current price", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_061", "utt": "what is the price of starbuck's stock", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_062", "utt": "how much is starbuck's stock these days", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_063", "utt": "how much is amazon stock", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_064", "utt": "what is the stock price of hdfc", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_065", "utt": "give the stock price details of motorolla", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_066", "utt": "open stock price for name", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_067", "utt": "detail for stock price", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_068", "utt": "please find out the share price of microsoft in nasdaq", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_069", "utt": "let me know up and down in stock price of this company stock", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_070", "utt": "stock price", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_071", "utt": "more stock price", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_072", "utt": "check stock price for dinky donuts", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_073", "utt": "were the stocks rising or declining", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_074", "utt": "how have megatel shares done last week", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_075", "utt": "did the price of walmart stock go up or down", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_qa_stock_076", "utt": "how much would it cost to buy stock in apple", "intent": "qa_stock", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_077", "utt": "please email my team", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_078", "utt": "answer to pawel's email", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_079", "utt": "email chelsea", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_080", "utt": "reply an email to jason that i will not come tonight", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_081", "utt": "reply to dad write i will be late", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_082", "utt": "here is a new email address to be added to the contacts", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_083", "utt": "go to contacts and enter a new email address", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_084", "utt": "compose a new email to ray", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_085", "utt": "how its come to us", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_086", "utt": "how we can get credit", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_087", "utt": "send an email to my boss", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_088", "utt": "please send to new email address listed", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_089", "utt": "reply thank you to john", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_090", "utt": "prepare email for susan", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_091", "utt": "send this email to reply to the latest emails", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_092", "utt": "respond to the email from john doe", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_093", "utt": "email alice to let her know we are on the way", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_094", "utt": "send an email to john asking him what time works for the meeting", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_095", "utt": "email karen about the budget meeting", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_096", "utt": "send email to joseph at gmail dot com", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_097", "utt": "send an email to rohit saying i am busy tomorrow", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_098", "utt": "hey siri start an email to coworker", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_099", "utt": "please compose a new email to coworker", "intent": "email_sendemail", "source_dataset": "massive"}
+{"id": "massive_email_sendemail_100", "utt": "please send an email to sally regarding tomorrows meeting", "intent": "email_sendemail", "source_dataset": "massive"}

@@ -1,0 +1,15 @@
+{"id": "clinc_translate_001", "utterance": "how would you say fly in italian", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_002", "utterance": "what's the spanish word for pasta", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_translate_003", "utterance": "how would they say butter in zambia", "intent": "translate", "source_dataset": "clinc"}
+{"id": "clinc_definition_001", "utterance": "define antebellum", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_002", "utterance": "define discontent", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_definition_003", "utterance": "what is the meaning of incandescent", "intent": "definition", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_001", "utterance": "convert 200 us dollars to british pounds", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_002", "utterance": "how many japanese yen are in a us dollar", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_exchange_rate_003", "utterance": "how much is 5 us dollars worth in canadian dollars", "intent": "exchange_rate", "source_dataset": "clinc"}
+{"id": "clinc_weather_001", "utterance": "what is the weather", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_002", "utterance": "current weather", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_weather_003", "utterance": "tell me the weather", "intent": "weather", "source_dataset": "clinc"}
+{"id": "clinc_oos_001", "utterance": "how much has the dow changed today", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_002", "utterance": "how many prime numbers are there between 0 and 100", "intent": "oos", "source_dataset": "clinc"}
+{"id": "clinc_oos_003", "utterance": "can you tell me how to solve simple algebraic equations with one variable", "intent": "oos", "source_dataset": "clinc"}

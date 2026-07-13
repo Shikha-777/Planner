@@ -1,0 +1,21 @@
+model:
+  base: Qwen/Qwen3-14B
+  adapter_output: checkpoints/qwen3-14b-taskdecomp-lora
+
+data:
+  raw_dir: data/raw
+  processed_dir: data/processed
+  negative_ratio: 0.35
+
+training:
+  max_seq_length: 4096
+  per_device_train_batch_size: 1
+  gradient_accumulation_steps: 16
+  learning_rate: 0.0001
+  num_train_epochs: 2
+  eval_steps: 100
+
+evaluation:
+  test_file: data/processed/test.eval.jsonl
+  predictions_file: results/predictions.jsonl
+  metrics_file: results/metrics.json

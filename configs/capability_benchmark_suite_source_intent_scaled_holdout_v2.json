@@ -1,0 +1,51 @@
+{
+  "planner_mode": "rules_first",
+  "model": "openai/gpt-oss-20b",
+  "max_new_tokens": 1200,
+  "gold_root": "data/capability_planning/benchmark_suite_source_intent_scaled_holdout_v2",
+  "output_root": "results/capability_benchmark_benchmark_suite_source_intent_scaled_holdout_v2",
+  "benchmarks": [
+    {
+      "name": "clinc_intent",
+      "input": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/clinc_intent_real.jsonl",
+      "dataset": "clinc",
+      "source_wrapper": "auto"
+    },
+    {
+      "name": "massive_intent",
+      "input": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/massive_intent_en_real.jsonl",
+      "dataset": "massive",
+      "source_wrapper": "auto"
+    },
+    {
+      "name": "local_intent_controls",
+      "input": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/local_intent_controls.jsonl",
+      "dataset": "auto",
+      "source_wrapper": "auto"
+    },
+    {
+      "name": "superni_summarize",
+      "input": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/superni_summarize_real.jsonl",
+      "dataset": "superni",
+      "source_wrapper": "summarize"
+    },
+    {
+      "name": "superni_classify",
+      "input": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/superni_classify_real.jsonl",
+      "dataset": "superni",
+      "source_wrapper": "classify"
+    },
+    {
+      "name": "superni_rewrite",
+      "input": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/superni_rewrite_real.jsonl",
+      "dataset": "superni",
+      "source_wrapper": "rewrite"
+    },
+    {
+      "name": "superni_extract",
+      "input": "data/benchmarks/public_slices_scaled_holdout_v2/source_intent/superni_extract_real.jsonl",
+      "dataset": "superni",
+      "source_wrapper": "extract"
+    }
+  ]
+}

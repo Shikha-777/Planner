@@ -1,0 +1,3 @@
+{"id": "local_missing_bio_002", "utterance": "Can you polish my LinkedIn bio?", "intent": "missing_source", "source_dataset": "local_controls"}
+{"id": "local_missing_revenue_plot_002", "utterance": "Plot revenue by region.", "intent": "missing_source", "source_dataset": "local_controls"}
+{"id": "local_draft_note_002", "utterance": "Write a brief note that the deploy finished and rollback is not needed.", "intent": "self_contained_writing", "source_dataset": "local_controls"}
