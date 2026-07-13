@@ -59,6 +59,7 @@ except ImportError:
 
 from goal_graph_eval_common import plan_and_compile_goal_graph
 from taskdecomp.episode_state import EpisodeState
+from taskdecomp.goal_graph_runtime import GoalGraphRuntime
 from run_gptoss_capability_plan import generate_text, load_model
 from taskdecomp.capability_planning import extract_json_object
 from taskdecomp.tool_binding import _filter_schema_value_incompatible_calls
@@ -4743,6 +4744,7 @@ class GoalGraphAgent(Agent):
     ) -> None:
         self.tools_info = tools_info
         self.goal_graph_tools = tau_tools_to_goal_graph_tools(tools_info)
+        self._capability_registry = GoalGraphRuntime(self.goal_graph_tools).registry
         self.available_tool_names = {
             str(tau_tool_function(tool).get("name") or "")
             for tool in tools_info
@@ -4779,6 +4781,7 @@ class GoalGraphAgent(Agent):
         # becoming part of the general goal-graph runtime.
         self.legacy_tau_heuristics = env_bool("TAU_GOAL_GRAPH_LEGACY_HEURISTICS", False)
         self._episode_state = EpisodeState()
+        self._pending_mutation_packets: dict[tuple[str, str], Any] = {}
         self.debug_dir = Path(os.environ.get("TAU_GOAL_GRAPH_DEBUG_DIR", "")) if os.environ.get("TAU_GOAL_GRAPH_DEBUG_DIR") else None
         self.replay_trace_enabled = env_bool("TAU_GOAL_GRAPH_REPLAY_TRACE", True)
         if self.debug_dir:
@@ -5143,6 +5146,34 @@ class GoalGraphAgent(Agent):
                 self._episode_state.record_resolution_inspection(resolution.resolution_id, candidate_id)
         return {"used": True, "resolution_id": resolution.resolution_id, "state": resolution.to_dict()}
 
+    def gate_mutation_action(self, action: Action, result: dict[str, Any]) -> Action:
+        """Prepare exactly one effect packet for a capability-classified write.
+
+        The shared capability registry, not a benchmark tool-name list, decides
+        whether an action is mutating. A packet is committed only after the
+        environment returns a successful observation in ``solve``.
+        """
+        capability = self._capability_registry.get(action.name)
+        if capability is None or capability.kind != "mutate":
+            return action
+        try:
+            packet = self._episode_state.build_mutation_packet(
+                goal_ids=[],
+                tool_name=action.name,
+                arguments=action.kwargs,
+            )
+        except ValueError as exc:
+            result["mutation_gate"] = {"allowed": False, "reason": str(exc)}
+            return fallback_response("The requested update has already been completed.")
+        self._pending_mutation_packets[action_signature(action)] = packet
+        result["mutation_gate"] = {"allowed": True, "packet": packet.to_dict()}
+        return action
+
+    def record_action_effect(self, action: Action, *, source_event_id: str, success: bool) -> None:
+        packet = self._pending_mutation_packets.pop(action_signature(action), None)
+        if packet is not None and success:
+            self._episode_state.record_mutation_commit(packet, source_event_id=source_event_id)
+
     def apply_policy_repair_if_needed(
         self,
         action: Action,
@@ -5282,6 +5313,7 @@ class GoalGraphAgent(Agent):
                     rejected_action=rejected_action,
                 )
         action = self.apply_policy_repair_if_needed(action, result, messages, previous_source)
+        action = self.gate_mutation_action(action, result)
         return action, result, latency_ms
 
     def write_debug(self, task_index: Optional[int], row: Dict[str, Any]) -> None:
@@ -5323,6 +5355,7 @@ class GoalGraphAgent(Agent):
         reward = 0.0
         previous_source = "user"
         self._episode_state = EpisodeState()
+        self._pending_mutation_packets = {}
         self._episode_state.record_user_message(reset.observation)
         messages: List[Dict[str, Any]] = [
             {"role": "system", "content": self.wiki},
@@ -5408,10 +5441,15 @@ class GoalGraphAgent(Agent):
             )
             if action.name != RESPOND_ACTION_NAME:
                 messages.append({"role": "tool", "name": action.name, "content": response.observation})
-                self._episode_state.record_tool_result(
+                tool_event = self._episode_state.record_tool_result(
                     action.name,
                     action.kwargs,
                     response.observation,
+                    success=not tool_observation_failed(response.observation),
+                )
+                self.record_action_effect(
+                    action,
+                    source_event_id=tool_event.event_id,
                     success=not tool_observation_failed(response.observation),
                 )
                 inspected_resolutions = self._episode_state.record_resolution_lookup(action.name, action.kwargs)
@@ -5465,10 +5503,15 @@ class GoalGraphAgent(Agent):
                         messages.append(
                             {"role": "tool", "name": final_action.name, "content": final_response.observation}
                         )
-                        self._episode_state.record_tool_result(
+                        tool_event = self._episode_state.record_tool_result(
                             final_action.name,
                             final_action.kwargs,
                             final_response.observation,
+                            success=not tool_observation_failed(final_response.observation),
+                        )
+                        self.record_action_effect(
+                            final_action,
+                            source_event_id=tool_event.event_id,
                             success=not tool_observation_failed(final_response.observation),
                         )
                         inspected_resolutions = self._episode_state.record_resolution_lookup(

@@ -446,6 +446,46 @@ def test_goal_graph_agent_model_selects_only_from_multiple_legal_transitions(mon
     assert module._planner_calls == []
 
 
+def test_goal_graph_agent_commits_successful_mutation_effect_and_blocks_replay(monkeypatch):
+    module = load_tau_goal_graph_module(monkeypatch)
+    agent = module.GoalGraphAgent(
+        tools_info=[
+            {
+                "type": "function",
+                "function": {
+                    "name": "cancel_record",
+                    "parameters": {
+                        "type": "object",
+                        "properties": {"record_id": {"type": "string"}},
+                        "required": ["record_id"],
+                    },
+                },
+            }
+        ],
+        wiki="Policy text",
+        model="local-goal-graph",
+        provider="openai",
+    )
+    action = module.Action(name="cancel_record", kwargs={"record_id": "R-1"})
+    result = {}
+
+    assert agent.gate_mutation_action(action, result) == action
+    assert result["mutation_gate"]["allowed"] is True
+    tool_event = agent._episode_state.record_tool_result(
+        action.name,
+        action.kwargs,
+        {"success": True},
+        success=True,
+    )
+    agent.record_action_effect(action, source_event_id=tool_event.event_id, success=True)
+
+    replay_result = {}
+    replay = agent.gate_mutation_action(action, replay_result)
+    assert replay.name == "respond"
+    assert replay_result["mutation_gate"]["allowed"] is False
+    assert "already been committed" in replay_result["mutation_gate"]["reason"]
+
+
 def test_binding_transcript_preserves_raw_observation_without_action_history(monkeypatch):
     module = load_tau_goal_graph_module(monkeypatch)
 
