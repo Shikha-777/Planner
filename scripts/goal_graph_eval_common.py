@@ -4509,7 +4509,8 @@ def build_tool_binding_frame_messages(
                         "completed, cancelled, or failed. When the current user turn introduces a concrete "
                         "new obligation, you may return goal_delta with an add list. Each addition needs "
                         "goal_id, kind (identify/retrieve/mutate/communicate), objective, optional "
-                        "target_expression, optional quantifier, dependencies, and evidence_ids. Goal "
+                        "target_expression, optional postcondition (tool_name and observed_equals), optional "
+                        "quantifier, dependencies, and evidence_ids. Goal "
                         "deltas are proposals only: they cannot change or remove an existing goal. Do not "
                         "create a meta-goal such as 'continue task'.\n"
                         if stateful and not stateful_goal_ledger_required
@@ -4574,7 +4575,7 @@ def build_tool_binding_frame_messages(
                         if stateful_goal_ledger_required
                         else (
                             "optional goal_delta object with add (goal_id, kind, objective, target_expression, "
-                            "quantifier, dependencies, evidence_ids); optional requested_fact_delta object with "
+                            "postcondition, quantifier, dependencies, evidence_ids); optional requested_fact_delta object with "
                             "set (subject, predicate, value, evidence); optional confirmation_delta object with "
                             "confirmation_id and evidence. Do not emit goal_ledger.\n"
                             if stateful

@@ -107,6 +107,7 @@ class Goal:
     kind: GoalKind
     predicate: dict[str, Any]
     target_expression: dict[str, Any]
+    postcondition: dict[str, Any] = field(default_factory=dict)
     quantifier: GoalQuantifier = "one"
     status: GoalStatus = "pending"
     dependencies: list[str] = field(default_factory=list)
@@ -122,6 +123,7 @@ class Goal:
             "kind": self.kind,
             "predicate": copy.deepcopy(self.predicate),
             "target_expression": copy.deepcopy(self.target_expression),
+            "postcondition": copy.deepcopy(self.postcondition),
             "quantifier": self.quantifier,
             "status": self.status,
             "dependencies": list(self.dependencies),
@@ -339,6 +341,7 @@ class EpisodeState:
         if success:
             subject = _subject_from_arguments(normalized_arguments) or EntityRef("tool_result", event.event_id)
             self._ingest_observation(normalized_observation, event, subject)
+            self._recompute_goal_statuses(str(tool_name), event.event_id)
         return event
 
     def record_requested_fact(
@@ -961,6 +964,40 @@ class EpisodeState:
             None,
         )
 
+    def _recompute_goal_statuses(self, tool_name: str, source_event_id: str) -> None:
+        """Derive completion only from an observed postcondition on this call."""
+        event_facts = [
+            fact
+            for fact in self.active_facts()
+            if fact.source.source_type == "tool_observation" and fact.source.source_id == source_event_id
+        ]
+        for goal in self.goals.values():
+            if goal.status in {"satisfied", "cancelled", "failed"}:
+                continue
+            expected_tool = str(goal.postcondition.get("tool_name") or "").strip()
+            if expected_tool and expected_tool != tool_name:
+                continue
+            expected_values = goal.postcondition.get("observed_equals")
+            if not isinstance(expected_values, dict) or not expected_values:
+                if expected_tool == tool_name and goal.kind == "mutate":
+                    goal.status = "executing"
+                continue
+            target_id = str(goal.target_expression.get("entity_id") or "").strip()
+            target_type = str(goal.target_expression.get("entity_type") or "").strip()
+            relevant_facts = [
+                fact
+                for fact in event_facts
+                if (not target_id or fact.subject.entity_id == target_id)
+                and (not target_type or fact.subject.entity_type == _entity_type(target_type))
+            ]
+            if all(
+                any(fact.predicate == _normalize_predicate(predicate) and fact.value == value for fact in relevant_facts)
+                for predicate, value in expected_values.items()
+            ):
+                goal.status = "satisfied"
+            elif expected_tool == tool_name and goal.kind == "mutate":
+                goal.status = "executing"
+
     def _invalidate_stale_confirmations(self) -> None:
         for confirmation in self.confirmations.values():
             if confirmation.status in {"pending", "valid"} and confirmation.request_revision != self.request_revision:
@@ -1148,6 +1185,11 @@ def _goal_from_proposal(
         target_expression = {}
     if not isinstance(target_expression, dict):
         return None, "goal_target_expression_invalid"
+    postcondition = value.get("postcondition")
+    if postcondition is None:
+        postcondition = {}
+    if not isinstance(postcondition, dict):
+        return None, "goal_postcondition_invalid"
     dependencies = _bounded_string_list(value.get("dependencies", value.get("depends_on")), 8)
     evidence = _bounded_string_list(value.get("evidence_ids", value.get("required_evidence")), 16)
     confirmation = value.get("confirmation_requirement")
@@ -1157,6 +1199,7 @@ def _goal_from_proposal(
             kind=raw_kind,
             predicate=predicate,
             target_expression=copy.deepcopy(target_expression),
+            postcondition=copy.deepcopy(postcondition),
             quantifier=raw_quantifier,
             dependencies=dependencies,
             required_evidence=evidence,

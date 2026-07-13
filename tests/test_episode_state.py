@@ -414,3 +414,41 @@ def test_confirmation_delta_can_validate_only_the_existing_scoped_capability():
         {"confirmation_id": "confirm_unknown", "evidence": "Yes"},
         source_event_id=reply.event_id,
     )["accepted"] is False
+
+
+def test_goal_completion_requires_a_matching_observed_postcondition_not_generic_tool_success():
+    state = EpisodeState()
+    request = state.record_user_message("Cancel reservation R-1.")
+    state.apply_goal_delta(
+        {
+            "add": [
+                {
+                    "goal_id": "cancel_reservation",
+                    "kind": "mutate",
+                    "objective": "Cancel reservation R-1.",
+                    "target_expression": {"entity_type": "reservation", "entity_id": "R-1"},
+                    "postcondition": {
+                        "tool_name": "cancel_reservation",
+                        "observed_equals": {"status": "cancelled"},
+                    },
+                }
+            ]
+        },
+        source_event_id=request.event_id,
+    )
+
+    state.record_tool_result(
+        "cancel_reservation",
+        {"reservation_id": "R-1"},
+        {"success": True},
+        success=True,
+    )
+    assert state.goals["cancel_reservation"].status == "executing"
+
+    state.record_tool_result(
+        "cancel_reservation",
+        {"reservation_id": "R-1"},
+        {"reservation_id": "R-1", "status": "cancelled"},
+        success=True,
+    )
+    assert state.goals["cancel_reservation"].status == "satisfied"
