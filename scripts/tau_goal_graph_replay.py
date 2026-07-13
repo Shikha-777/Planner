@@ -72,7 +72,7 @@ def replay_case(
         binding_request=case["binding_request"],
         execution_history=case["execution_history"],
         stateful_goal_ledger=case["stateful_goal_ledger"],
-        stateful_goal_ledger_required=True,
+        stateful_goal_ledger_required=False,
         stateful_semantic_only=True,
         stateful_semantic_review=True,
     )
@@ -86,6 +86,8 @@ def replay_case(
         "parse_error": result.get("parse_error"),
         "diagnostic_codes": result.get("diagnostic_codes") or [],
         "review": result.get("stateful_semantic_review") or {},
+        "goal_delta": result.get("stateful_goal_delta") or {},
+        "requested_fact_delta": result.get("stateful_requested_fact_delta") or {},
     }
 
 
