@@ -773,12 +773,78 @@ def _plan_and_compile_goal_graph_stepwise(
                     graph = _graph_from_binding_plan(runtime, binding_text, binding_plan)
                     output = runtime.compile(graph, binding_text, allow_side_effects=allow_side_effects)
                 else:
-                    binding_plan = _stateful_semantic_only_no_call_plan(
-                        binding_plan,
-                        reason="semantic candidate review rejected the repaired no-action decision",
+                    # The first correction replaced a rejected call with a
+                    # clarification that the terminal reviewer also rejected.
+                    # Give the semantic binder one final, reviewer-informed
+                    # opportunity to propose a verified transition. It still
+                    # cannot execute a call without normal compilation and a
+                    # fresh candidate review.
+                    secondary_plan, secondary_repair = _stateful_progress_repair_plan(
+                        model,
+                        tokenizer,
+                        generate_text,
+                        user_request,
+                        binding_text,
+                        tools,
+                        completed_calls,
+                        max_new_tokens,
+                        semantic_only=stateful_semantic_only,
+                        reviewer_feedback=str(
+                            repair_terminal_review.get("reason")
+                            or "repaired no-action decision rejected"
+                        ),
+                        stateful_goal_ledger=stateful_goal_ledger,
+                        stateful_goal_ledger_required=stateful_goal_ledger_required,
+                        no_action_was_rejected=True,
+                        resolved_missing_inputs=resolved_missing_inputs,
                     )
-                    graph = _graph_from_binding_plan(runtime, binding_text, binding_plan)
-                    output = runtime.compile(graph, binding_text, allow_side_effects=allow_side_effects)
+                    stateful_semantic_review_result["secondary_replan"] = secondary_repair
+                    if secondary_plan is not None and secondary_plan.get("calls"):
+                        secondary_graph = _graph_from_binding_plan(runtime, binding_text, secondary_plan)
+                        secondary_output = runtime.compile(
+                            secondary_graph,
+                            binding_text,
+                            allow_side_effects=allow_side_effects,
+                        )
+                        if secondary_output.verification.ok:
+                            secondary_review = _review_stateful_candidate_calls(
+                                model,
+                                tokenizer,
+                                generate_text,
+                                user_request,
+                                tools,
+                                compiled_calls_to_dicts(secondary_output.calls),
+                                completed_calls,
+                                max_new_tokens,
+                                runtime=runtime,
+                            )
+                            stateful_semantic_review_result["secondary_repair_review"] = secondary_review
+                            if secondary_review["allowed"]:
+                                binding_plan = secondary_plan
+                                binding_recovery_plan = secondary_plan
+                                graph = secondary_graph
+                                output = secondary_output
+                            else:
+                                binding_plan = _stateful_semantic_only_no_call_plan(
+                                    binding_plan,
+                                    reason="semantic reviewer rejected the final bounded correction",
+                                )
+                                graph = _graph_from_binding_plan(runtime, binding_text, binding_plan)
+                                output = runtime.compile(graph, binding_text, allow_side_effects=allow_side_effects)
+                        else:
+                            binding_plan = _stateful_semantic_only_no_call_plan(
+                                binding_plan,
+                                reason="final bounded semantic correction did not compile",
+                            )
+                            graph = _graph_from_binding_plan(runtime, binding_text, binding_plan)
+                            output = runtime.compile(graph, binding_text, allow_side_effects=allow_side_effects)
+                    else:
+                        binding_plan = _stateful_semantic_only_no_call_plan(
+                            binding_plan,
+                            reason="semantic candidate review rejected the repaired no-action decision",
+                        )
+                        graph = _graph_from_binding_plan(runtime, binding_text, binding_plan)
+                        output = runtime.compile(graph, binding_text, allow_side_effects=allow_side_effects)
             else:
                 binding_plan = _stateful_semantic_only_no_call_plan(
                     binding_plan,

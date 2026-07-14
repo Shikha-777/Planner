@@ -1489,6 +1489,56 @@ def test_stateful_candidate_repair_preserves_a_semantic_response_after_rejection
     assert result["stateful_semantic_review"]["repair_terminal_review"]["allowed"] is True
 
 
+def test_stateful_candidate_repair_gets_one_final_correction_after_rejected_clarification():
+    candidate_calls = [{"tool_name": "get_record", "arguments": {"record_id": "R-1"}}]
+    outputs = iter(
+        [
+            '{"tool_decision":"call","canonical_request":"Retrieve R-1.","slots_observed":[],"call_groups":[{"expected_call_count":1}],"tool_bindings":[{"tool_name":"get_record","call_count":1,"arguments":{"record_id":"R-1"},"evidence_spans":{"record_id":"R-1"}}],"missing_inputs":[]}',
+            json.dumps(
+                {
+                    "verdict": "reject",
+                    "reason": "The initial candidate is stale.",
+                    "checks": {"facts_are_current": "false"},
+                    "failed_check": "facts_are_current",
+                    "evidence_ids": ["obs_1:/record_id"],
+                    "candidate_calls": candidate_calls,
+                }
+            ),
+            '{"tool_decision":"ask_user","canonical_request":"Retrieve R-1.","slots_observed":[],"call_groups":[],"tool_bindings":[],"missing_inputs":["unneeded_input"]}',
+            '{"verdict":"reject","reason":"A grounded record lookup is required before clarification."}',
+            '{"tool_decision":"call","canonical_request":"Retrieve R-1.","slots_observed":[],"call_groups":[{"expected_call_count":1}],"tool_bindings":[{"tool_name":"get_record","call_count":1,"arguments":{"record_id":"R-1"},"evidence_spans":{"record_id":"R-1"}}],"missing_inputs":[]}',
+            '{"verdict":"allow","reason":"The corrected lookup is grounded."}',
+        ]
+    )
+
+    result = plan_and_compile_goal_graph(
+        None,
+        None,
+        lambda *_args: next(outputs),
+        "Retrieve record R-1.",
+        [
+            {
+                "name": "get_record",
+                "description": "Retrieve a record.",
+                "parameters": {"type": "object", "properties": {"record_id": {"type": "string"}}, "required": ["record_id"]},
+            }
+        ],
+        max_new_tokens=100,
+        repair_attempts=0,
+        stateful=True,
+        stateful_semantic_only=True,
+        stateful_semantic_review=True,
+        binding_request="Binding evidence:\nuser: retrieve record R-1.",
+    )
+
+    assert result["calls"][0]["tool_name"] == "get_record"
+    assert result["calls"][0]["arguments"] == {"record_id": "R-1"}
+    review = result["stateful_semantic_review"]
+    assert review["repair_terminal_review"]["allowed"] is False
+    assert review["secondary_replan"]["used"] is True
+    assert review["secondary_repair_review"]["allowed"] is True
+
+
 def test_stepwise_stateful_terminal_review_runs_before_any_tool_observation():
     outputs = iter(
         [
