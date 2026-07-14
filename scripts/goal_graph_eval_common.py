@@ -1598,7 +1598,10 @@ def _structured_candidate_rejection(payload: dict[str, Any]) -> dict[str, Any] |
     evidence_ids = payload.get("evidence_ids")
     if not isinstance(checks, dict) or failed_check not in _CANDIDATE_REVIEW_CHECKS:
         return None
-    if str(checks.get(failed_check) or "").strip().lower() != "false":
+    failed_value = checks.get(failed_check)
+    # JSON booleans are the natural serialization for reviewer checks. Do not
+    # collapse false to an empty fallback before normalizing it.
+    if str(failed_value).strip().lower() != "false":
         return None
     if any(str(value).strip().lower() not in {"true", "false", "unknown"} for value in checks.values()):
         return None

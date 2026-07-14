@@ -1204,6 +1204,32 @@ def test_stateful_candidate_reviewer_rejects_an_explicit_rejection():
     assert review["failed_check"] == "facts_are_current"
 
 
+def test_stateful_candidate_reviewer_accepts_json_boolean_rejection_checks():
+    candidate_calls = [{"tool_name": "get_record", "arguments": {"record_id": "R-1"}}]
+    review = _review_stateful_candidate_calls(
+        None,
+        None,
+        lambda *_args: json.dumps(
+            {
+                "verdict": "reject",
+                "reason": "The record is stale.",
+                "checks": {"facts_are_current": False},
+                "failed_check": "facts_are_current",
+                "evidence_ids": ["obs_1:/status"],
+                "candidate_calls": candidate_calls,
+            }
+        ),
+        "Retrieve record R-1.",
+        [],
+        candidate_calls,
+        [],
+        100,
+    )
+
+    assert review["allowed"] is False
+    assert review["checks"]["facts_are_current"] == "false"
+
+
 def test_stateful_candidate_reviewer_recovers_an_unstructured_rejection():
     candidate_calls = [{"tool_name": "get_record", "arguments": {"record_id": "R-1"}}]
     calls = 0
