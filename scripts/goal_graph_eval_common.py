@@ -1521,13 +1521,16 @@ def _review_stateful_candidate_calls(
         messages,
         min(max(max_new_tokens, 1000), 1200),
         'verdict ("allow" or "reject"), checks, failed_check, evidence_ids, reason, candidate_calls',
-        payload_validator=_reviewer_has_allow_reject_verdict,
+        payload_validator=lambda payload: _reviewer_has_candidate_call_verdict_contract(
+            payload,
+            candidate_payload,
+        ),
     )
     if not isinstance(parsed, dict):
         return {
             "attempted": True,
             "allowed": False,
-            "reason": "semantic reviewer did not return valid JSON",
+            "reason": "semantic reviewer did not return a schema-complete verdict",
             "parse_error": parse_error,
             "raw_text": raw_text,
             "format_recovery": format_recovery,
@@ -1548,16 +1551,6 @@ def _review_stateful_candidate_calls(
         }
     verdict = str(parsed.get("verdict") or "").strip().lower()
     structured_rejection = _structured_candidate_rejection(parsed)
-    if verdict == "reject" and structured_rejection is None:
-        return {
-            "attempted": True,
-            "allowed": True,
-            "abstained": True,
-            "verdict": verdict,
-            "reason": "semantic reviewer rejection lacked an actionable structured predicate",
-            "raw_text": raw_text,
-            "format_recovery": format_recovery,
-        }
     bounded_disambiguation = _stateful_bounded_readonly_disambiguation(
         candidate_payload,
         completed_calls,
@@ -2194,6 +2187,31 @@ def _generate_reviewer_json(
 def _reviewer_has_allow_reject_verdict(payload: dict[str, Any]) -> bool:
     verdict = str(payload.get("verdict") or "").strip().lower()
     return verdict in {"allow", "reject"}
+
+
+def _reviewer_has_candidate_call_verdict_contract(
+    payload: dict[str, Any],
+    candidate_calls: list[dict[str, Any]],
+) -> bool:
+    """Require an auditable reject verdict before it can veto a transition.
+
+    A reviewer may approve a compiled candidate with a simple allow verdict.
+    A rejection, however, changes control flow and must name a false predicate
+    backed by source evidence.  Treating an incomplete rejection as approval
+    let malformed reviewer output execute candidates it had already identified
+    as incompatible.  The common reviewer formatter receives one recovery
+    attempt; a second malformed response is conservatively rejected.
+    """
+    verdict = str(payload.get("verdict") or "").strip().lower()
+    if verdict == "allow":
+        return True
+    echoed_calls = payload.get("candidate_calls")
+    if echoed_calls != candidate_calls:
+        # The caller will explicitly abstain from a reviewer that evaluated a
+        # different call. Do not spend a recovery pass trying to turn that
+        # invalid assessment into a veto over the real candidate.
+        return True
+    return verdict == "reject" and _structured_candidate_rejection(payload) is not None
 
 
 def _stateful_progress_repair_plan(

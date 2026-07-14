@@ -1204,7 +1204,42 @@ def test_stateful_candidate_reviewer_rejects_an_explicit_rejection():
     assert review["failed_check"] == "facts_are_current"
 
 
-def test_stateful_candidate_reviewer_abstains_from_an_unstructured_rejection():
+def test_stateful_candidate_reviewer_recovers_an_unstructured_rejection():
+    candidate_calls = [{"tool_name": "get_record", "arguments": {"record_id": "R-1"}}]
+    calls = 0
+
+    def fake_generate(_model, _tokenizer, _messages, _max_new_tokens):
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return json.dumps({"verdict": "reject", "reason": "test", "candidate_calls": candidate_calls})
+        return json.dumps(
+            {
+                "verdict": "reject",
+                "reason": "The source record is stale.",
+                "checks": {"facts_are_current": "false"},
+                "failed_check": "facts_are_current",
+                "evidence_ids": ["obs_1:/status"],
+                "candidate_calls": candidate_calls,
+            }
+        )
+
+    review = _review_stateful_candidate_calls(
+        None,
+        None,
+        fake_generate,
+        "Retrieve record R-1.",
+        [],
+        candidate_calls,
+        [],
+        100,
+    )
+
+    assert review["allowed"] is False
+    assert review["format_recovery"]["used"] is True
+
+
+def test_stateful_candidate_reviewer_fails_closed_after_unstructured_rejection_recovery():
     candidate_calls = [{"tool_name": "get_record", "arguments": {"record_id": "R-1"}}]
     review = _review_stateful_candidate_calls(
         None,
@@ -1217,8 +1252,8 @@ def test_stateful_candidate_reviewer_abstains_from_an_unstructured_rejection():
         100,
     )
 
-    assert review["allowed"] is True
-    assert review["abstained"] is True
+    assert review["allowed"] is False
+    assert review["format_recovery"]["attempted"] is True
 
 
 def test_stateful_candidate_reviewer_abstains_when_it_echoes_a_different_call():
