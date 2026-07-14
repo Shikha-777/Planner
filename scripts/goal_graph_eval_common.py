@@ -4027,9 +4027,20 @@ def _generate_semantic_frame(
         stateful_goal_ledger,
         required=stateful_goal_ledger_required,
     )
-    if stateful_goal_ledger_required and isinstance(parsed, dict) and not _normalize_stateful_goal_ledger(parsed.get("goal_ledger")):
+    runtime_delta_contract_required = stateful and (
+        stateful_goal_ledger_required or stateful_goal_ledger is not None
+    )
+    parse_error = (
+        _stateful_semantic_frame_contract_error(
+            parsed,
+            stateful_goal_ledger=stateful_goal_ledger,
+            stateful_goal_ledger_required=stateful_goal_ledger_required,
+        )
+        if runtime_delta_contract_required
+        else None
+    ) or parse_error
+    if parse_error:
         parsed = None
-        parse_error = "stateful semantic frame omitted the required goal_ledger"
     adaptive_retry: dict[str, Any] = {"attempted": False}
     if stateful and parsed is None:
         # Stateful turns usually need one compact action. When the model spends
@@ -4045,13 +4056,17 @@ def _generate_semantic_frame(
             required=stateful_goal_ledger_required,
         )
         inherited_goal_ledger = inherited_goal_ledger or retry_inherited_goal_ledger
-        if (
-            stateful_goal_ledger_required
-            and isinstance(retry_parsed, dict)
-            and not _normalize_stateful_goal_ledger(retry_parsed.get("goal_ledger"))
-        ):
+        retry_parse_error = (
+            _stateful_semantic_frame_contract_error(
+                retry_parsed,
+                stateful_goal_ledger=stateful_goal_ledger,
+                stateful_goal_ledger_required=stateful_goal_ledger_required,
+            )
+            if runtime_delta_contract_required
+            else None
+        ) or retry_parse_error
+        if retry_parse_error:
             retry_parsed = None
-            retry_parse_error = "stateful semantic frame omitted the required goal_ledger"
         adaptive_retry = {
             "attempted": True,
             "max_new_tokens": retry_tokens,
@@ -4085,6 +4100,11 @@ def _generate_semantic_frame(
                     "Required fields: tool_decision, canonical_request, slots_observed, "
                     "call_groups, tool_bindings, missing_inputs, optional clarification_message, "
                     + ("required goal_ledger, " if stateful_goal_ledger_required else "")
+                    + (
+                        "required goal_delta, requested_fact_delta, and confirmation_delta objects, "
+                        if stateful and not stateful_goal_ledger_required
+                        else ""
+                    )
                     + "\nPrior draft:\n"
                     + str(raw_text)[-12000:]
                 ),
@@ -4098,13 +4118,17 @@ def _generate_semantic_frame(
             required=stateful_goal_ledger_required,
         )
         inherited_goal_ledger = inherited_goal_ledger or recovery_inherited_goal_ledger
-        if (
-            stateful_goal_ledger_required
-            and isinstance(recovery_parsed, dict)
-            and not _normalize_stateful_goal_ledger(recovery_parsed.get("goal_ledger"))
-        ):
+        recovery_parse_error = (
+            _stateful_semantic_frame_contract_error(
+                recovery_parsed,
+                stateful_goal_ledger=stateful_goal_ledger,
+                stateful_goal_ledger_required=stateful_goal_ledger_required,
+            )
+            if runtime_delta_contract_required
+            else None
+        ) or recovery_parse_error
+        if recovery_parse_error:
             recovery_parsed = None
-            recovery_parse_error = "stateful semantic frame omitted the required goal_ledger"
         format_recovery = {
             "attempted": True,
             "max_new_tokens": 1000,
@@ -4122,6 +4146,10 @@ def _generate_semantic_frame(
         "parse_error": parse_error if parsed is None else None,
         "adaptive_retry": adaptive_retry,
         "format_recovery": format_recovery,
+        "runtime_delta_contract": {
+            "required": runtime_delta_contract_required and not stateful_goal_ledger_required,
+            "error": parse_error if parsed is None else None,
+        },
         "goal_ledger_recovery": {
             "used": inherited_goal_ledger,
             "reason": "preserved prior runtime continuity state when a valid semantic frame omitted it"
@@ -4129,6 +4157,47 @@ def _generate_semantic_frame(
             else None,
         },
     }
+
+
+def _stateful_semantic_frame_contract_error(
+    frame: dict[str, Any] | None,
+    *,
+    stateful_goal_ledger: dict[str, Any] | None,
+    stateful_goal_ledger_required: bool,
+) -> str | None:
+    """Reject stateful frames that would silently drop runtime-owned state.
+
+    This is intentionally a response-shape contract, not a domain policy. The
+    model may propose state deltas, but a deterministic runtime owns admission
+    and lifecycle. Requiring explicit empty containers means a malformed or
+    abbreviated planner response cannot look like a valid no-state update.
+    """
+    if not isinstance(frame, dict):
+        return None
+    if stateful_goal_ledger_required:
+        if not _normalize_stateful_goal_ledger(frame.get("goal_ledger")):
+            return "stateful semantic frame omitted the required goal_ledger"
+        return None
+
+    for key in ("goal_delta", "requested_fact_delta", "confirmation_delta"):
+        if not isinstance(frame.get(key), dict):
+            return f"stateful semantic frame omitted required {key} object"
+    goal_delta = frame["goal_delta"]
+    requested_fact_delta = frame["requested_fact_delta"]
+    if goal_delta and not isinstance(goal_delta.get("add"), list):
+        return "stateful semantic frame goal_delta.add is not a list"
+    if requested_fact_delta and not isinstance(requested_fact_delta.get("set"), list):
+        return "stateful semantic frame requested_fact_delta.set is not a list"
+
+    ledger = _normalize_stateful_goal_ledger(stateful_goal_ledger)
+    has_active_goals = bool(ledger.get("goals"))
+    decision = str(frame.get("tool_decision") or "").strip().lower()
+    canonical_request = str(frame.get("canonical_request") or "").strip()
+    if not has_active_goals and decision in {"call", "ask_user"} and canonical_request:
+        additions = goal_delta.get("add") if isinstance(goal_delta, dict) else None
+        if not isinstance(additions, list) or not additions:
+            return "stateful semantic frame omitted goal_delta for a new active obligation"
+    return None
 
 
 def _inherit_stateful_goal_ledger_if_needed(

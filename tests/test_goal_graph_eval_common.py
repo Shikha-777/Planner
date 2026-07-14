@@ -830,6 +830,17 @@ def test_stateful_semantic_frame_recovers_prose_as_json_after_retries():
                     "tool_bindings": [],
                     "missing_inputs": ["account_id"],
                     "clarification_message": "Please provide the account ID.",
+                    "goal_delta": {
+                        "add": [
+                            {
+                                "goal_id": "goal_retrieve_record",
+                                "kind": "retrieve",
+                                "objective": "Retrieve the requested record.",
+                            }
+                        ]
+                    },
+                    "requested_fact_delta": {},
+                    "confirmation_delta": {},
                 }
             ),
         ]
@@ -848,6 +859,62 @@ def test_stateful_semantic_frame_recovers_prose_as_json_after_retries():
     assert token_limits == [1400, 2800, 1000]
     assert result["parsed"]["missing_inputs"] == ["account_id"]
     assert result["format_recovery"]["used"] is True
+
+
+def test_stateful_semantic_frame_retries_when_runtime_deltas_are_missing():
+    token_limits: list[int] = []
+    outputs = iter(
+        [
+            json.dumps(
+                {
+                    "tool_decision": "ask_user",
+                    "canonical_request": "Retrieve the requested record.",
+                    "slots_observed": [],
+                    "call_groups": [],
+                    "tool_bindings": [],
+                    "missing_inputs": ["record_id"],
+                }
+            ),
+            json.dumps(
+                {
+                    "tool_decision": "ask_user",
+                    "canonical_request": "Retrieve the requested record.",
+                    "slots_observed": [],
+                    "call_groups": [],
+                    "tool_bindings": [],
+                    "missing_inputs": ["record_id"],
+                    "goal_delta": {
+                        "add": [
+                            {
+                                "goal_id": "goal_retrieve_record",
+                                "kind": "retrieve",
+                                "objective": "Retrieve the requested record.",
+                            }
+                        ]
+                    },
+                    "requested_fact_delta": {},
+                    "confirmation_delta": {},
+                }
+            ),
+        ]
+    )
+
+    result = _generate_semantic_frame(
+        None,
+        None,
+        lambda _model, _tokenizer, _messages, max_tokens: token_limits.append(max_tokens) or next(outputs),
+        "Retrieve the requested record.",
+        [],
+        900,
+        stateful=True,
+        stateful_goal_ledger={},
+    )
+
+    assert token_limits == [1400, 2800]
+    assert result["parsed"]["goal_delta"]["add"][0]["goal_id"] == "goal_retrieve_record"
+    assert result["adaptive_retry"]["initial_parse_error"] == (
+        "stateful semantic frame omitted required goal_delta object"
+    )
 
 
 def test_stateful_semantic_frame_retries_when_required_goal_ledger_is_missing():
