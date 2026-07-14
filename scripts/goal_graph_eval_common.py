@@ -4197,6 +4197,46 @@ def _stateful_semantic_frame_contract_error(
         additions = goal_delta.get("add") if isinstance(goal_delta, dict) else None
         if not isinstance(additions, list) or not additions:
             return "stateful semantic frame omitted goal_delta for a new active obligation"
+    additions = goal_delta.get("add") if isinstance(goal_delta, dict) else None
+    if isinstance(additions, list):
+        for index, addition in enumerate(additions[:16]):
+            error = _stateful_goal_proposal_shape_error(addition)
+            if error:
+                return f"stateful semantic frame goal_delta.add[{index}] {error}"
+    return None
+
+
+def _stateful_goal_proposal_shape_error(value: Any) -> str | None:
+    """Check only typed goal-shape invariants before runtime admission.
+
+    The goal reducer remains responsible for identity, dependencies, and
+    lifecycle. This earlier check merely makes malformed optional fields cause
+    a bounded semantic retry instead of being silently rejected after an
+    otherwise valid action has already been selected.
+    """
+    if not isinstance(value, dict):
+        return "is not an object"
+    if not str(value.get("goal_id") or value.get("id") or "").strip():
+        return "is missing goal_id"
+    if str(value.get("kind") or "").strip().lower() not in {"identify", "retrieve", "mutate", "communicate"}:
+        return "has an invalid kind"
+    objective = value.get("objective")
+    predicate = value.get("predicate")
+    if not str(objective or (predicate.get("objective") if isinstance(predicate, dict) else "") or "").strip():
+        return "is missing objective"
+    if "target_expression" in value and not isinstance(value["target_expression"], dict):
+        return "has a non-object target_expression"
+    postcondition = value.get("postcondition")
+    if "postcondition" in value and not isinstance(postcondition, dict):
+        return "has a non-object postcondition"
+    if isinstance(postcondition, dict) and "observed_equals" in postcondition and not isinstance(postcondition["observed_equals"], dict):
+        return "has a non-object postcondition.observed_equals"
+    quantifier = value.get("quantifier")
+    if "quantifier" in value and str(quantifier).strip().lower() not in {"one", "all", "any", "exactly_n"}:
+        return "has an invalid quantifier"
+    for field_name in ("dependencies", "evidence_ids", "required_evidence"):
+        if field_name in value and not isinstance(value[field_name], list):
+            return f"has a non-list {field_name}"
     return None
 
 
@@ -4583,6 +4623,9 @@ def build_tool_binding_frame_messages(
                         "goal_id, kind (identify/retrieve/mutate/communicate), objective, optional "
                         "target_expression, optional postcondition (tool_name and observed_equals), optional "
                         "quantifier, dependencies, and evidence_ids. Goal "
+                        "fields are typed: omit an optional field when unknown; never use null or a scalar "
+                        "in place of target_expression or postcondition objects. evidence_ids must be a list "
+                        "of source IDs shown in the runtime state. Goal "
                         "deltas are proposals only: they cannot change or remove an existing goal. Do not "
                         "create a meta-goal such as 'continue task'.\n"
                         if stateful and not stateful_goal_ledger_required

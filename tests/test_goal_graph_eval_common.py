@@ -917,6 +917,74 @@ def test_stateful_semantic_frame_retries_when_runtime_deltas_are_missing():
     )
 
 
+def test_stateful_semantic_frame_retries_when_goal_delta_has_untyped_optional_fields():
+    outputs = iter(
+        [
+            json.dumps(
+                {
+                    "tool_decision": "ask_user",
+                    "canonical_request": "Authenticate the user before retrieving the record.",
+                    "slots_observed": [],
+                    "call_groups": [],
+                    "tool_bindings": [],
+                    "missing_inputs": ["email"],
+                    "goal_delta": {
+                        "add": [
+                            {
+                                "goal_id": "goal_authenticate",
+                                "kind": "identify",
+                                "objective": "Authenticate the user.",
+                                "target_expression": "user_id",
+                            }
+                        ]
+                    },
+                    "requested_fact_delta": {},
+                    "confirmation_delta": {},
+                }
+            ),
+            json.dumps(
+                {
+                    "tool_decision": "ask_user",
+                    "canonical_request": "Authenticate the user before retrieving the record.",
+                    "slots_observed": [],
+                    "call_groups": [],
+                    "tool_bindings": [],
+                    "missing_inputs": ["email"],
+                    "goal_delta": {
+                        "add": [
+                            {
+                                "goal_id": "goal_authenticate",
+                                "kind": "identify",
+                                "objective": "Authenticate the user.",
+                                "target_expression": {"entity_type": "user"},
+                                "evidence_ids": ["event_1"],
+                            }
+                        ]
+                    },
+                    "requested_fact_delta": {},
+                    "confirmation_delta": {},
+                }
+            ),
+        ]
+    )
+
+    result = _generate_semantic_frame(
+        None,
+        None,
+        lambda *_args: next(outputs),
+        "Please retrieve my record.",
+        [],
+        900,
+        stateful=True,
+        stateful_goal_ledger={},
+    )
+
+    assert result["parsed"]["goal_delta"]["add"][0]["target_expression"] == {"entity_type": "user"}
+    assert result["adaptive_retry"]["initial_parse_error"] == (
+        "stateful semantic frame goal_delta.add[0] has a non-object target_expression"
+    )
+
+
 def test_stateful_semantic_frame_retries_when_required_goal_ledger_is_missing():
     token_limits: list[int] = []
     ledger = {
