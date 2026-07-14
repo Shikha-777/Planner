@@ -655,7 +655,7 @@ def test_stateful_semantic_binding_prompt_requires_goal_ledger_when_requested():
     assert "never use meta-goals" in messages[-1]["content"]
 
 
-def test_runtime_owned_stateful_prompt_requests_only_additive_goal_delta():
+def test_runtime_owned_stateful_prompt_requires_additive_runtime_deltas():
     messages = build_tool_binding_frame_messages(
         "Cancel the matching reservation.",
         [],
@@ -666,9 +666,11 @@ def test_runtime_owned_stateful_prompt_requests_only_additive_goal_delta():
     prompt = messages[-1]["content"]
 
     assert "The runtime owns the goal ledger" in prompt
-    assert "optional goal_delta object" in prompt
+    assert "goal_delta MUST contain an add list" in prompt
+    assert "required goal_delta object" in prompt
     assert "requested_fact_delta" in prompt
     assert "confirmation_delta" in prompt
+    assert "Use empty objects when no delta applies" in prompt
     assert "Do not emit goal_ledger" in prompt
     assert "goal_ledger is REQUIRED" not in prompt
 

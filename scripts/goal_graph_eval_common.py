@@ -4506,8 +4506,11 @@ def build_tool_binding_frame_messages(
                     ),
                     (
                         "- The runtime owns the goal ledger. Do not return goal_ledger or mark any goal "
-                        "completed, cancelled, or failed. When the current user turn introduces a concrete "
-                        "new obligation, you may return goal_delta with an add list. Each addition needs "
+                        "completed, cancelled, or failed. Always return goal_delta, requested_fact_delta, "
+                        "and confirmation_delta objects (use empty objects when none applies). When the "
+                        "current user turn introduces a concrete new obligation, goal_delta MUST contain an "
+                        "add list with that obligation, even when the next executable transition is only a "
+                        "clarification or an authentication prerequisite. Each addition needs "
                         "goal_id, kind (identify/retrieve/mutate/communicate), objective, optional "
                         "target_expression, optional postcondition (tool_name and observed_equals), optional "
                         "quantifier, dependencies, and evidence_ids. Goal "
@@ -4517,8 +4520,9 @@ def build_tool_binding_frame_messages(
                         else ""
                     ),
                     (
-                        "- When the latest user turn corrects or adds a desired value, you may return "
-                        "requested_fact_delta with a set list. Each item needs subject "
+                        "- When the latest user turn states, corrects, or adds a desired value, "
+                        "requested_fact_delta MUST contain a set list for each literal value whose subject "
+                        "can be grounded. Each item needs subject "
                         "({entity_type, entity_id}), predicate, value, and evidence copied exactly from "
                         "that latest user turn. Do not emit current environment values as requested facts. "
                         "Do not use a subject identifier unless it appears in the user turn or a recorded "
@@ -4574,10 +4578,10 @@ def build_tool_binding_frame_messages(
                         "required goal_ledger object with goals ({id, objective, status, depends_on}) and next_goal_id.\n"
                         if stateful_goal_ledger_required
                         else (
-                            "optional goal_delta object with add (goal_id, kind, objective, target_expression, "
-                            "postcondition, quantifier, dependencies, evidence_ids); optional requested_fact_delta object with "
-                            "set (subject, predicate, value, evidence); optional confirmation_delta object with "
-                            "confirmation_id and evidence. Do not emit goal_ledger.\n"
+                            "required goal_delta object with add (goal_id, kind, objective, target_expression, "
+                            "postcondition, quantifier, dependencies, evidence_ids); required requested_fact_delta object with "
+                            "set (subject, predicate, value, evidence); required confirmation_delta object with "
+                            "confirmation_id and evidence. Use empty objects when no delta applies. Do not emit goal_ledger.\n"
                             if stateful
                             else ""
                         )
