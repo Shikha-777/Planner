@@ -917,61 +917,34 @@ def test_stateful_semantic_frame_retries_when_runtime_deltas_are_missing():
     )
 
 
-def test_stateful_semantic_frame_retries_when_goal_delta_has_untyped_optional_fields():
-    outputs = iter(
-        [
-            json.dumps(
-                {
-                    "tool_decision": "ask_user",
-                    "canonical_request": "Authenticate the user before retrieving the record.",
-                    "slots_observed": [],
-                    "call_groups": [],
-                    "tool_bindings": [],
-                    "missing_inputs": ["email"],
-                    "goal_delta": {
-                        "add": [
-                            {
-                                "goal_id": "goal_authenticate",
-                                "kind": "identify",
-                                "objective": "Authenticate the user.",
-                                "target_expression": "user_id",
-                            }
-                        ]
-                    },
-                    "requested_fact_delta": {},
-                    "confirmation_delta": {},
-                }
-            ),
-            json.dumps(
-                {
-                    "tool_decision": "ask_user",
-                    "canonical_request": "Authenticate the user before retrieving the record.",
-                    "slots_observed": [],
-                    "call_groups": [],
-                    "tool_bindings": [],
-                    "missing_inputs": ["email"],
-                    "goal_delta": {
-                        "add": [
-                            {
-                                "goal_id": "goal_authenticate",
-                                "kind": "identify",
-                                "objective": "Authenticate the user.",
-                                "target_expression": {"entity_type": "user"},
-                                "evidence_ids": ["event_1"],
-                            }
-                        ]
-                    },
-                    "requested_fact_delta": {},
-                    "confirmation_delta": {},
-                }
-            ),
-        ]
-    )
-
+def test_stateful_semantic_frame_canonicalizes_untyped_goal_optional_fields():
     result = _generate_semantic_frame(
         None,
         None,
-        lambda *_args: next(outputs),
+        lambda *_args: json.dumps(
+            {
+                "tool_decision": "ask_user",
+                "canonical_request": "Authenticate the user before retrieving the record.",
+                "slots_observed": [],
+                "call_groups": [],
+                "tool_bindings": [],
+                "missing_inputs": ["email"],
+                "goal_delta": {
+                    "add": [
+                        {
+                            "goal_id": "goal_authenticate",
+                            "kind": "identify",
+                            "objective": "Authenticate the user.",
+                            "target_expression": "user_id",
+                            "postcondition": {"tool_name": "find_user", "observed_equals": "user_id"},
+                            "quantifier": None,
+                        }
+                    ]
+                },
+                "requested_fact_delta": {},
+                "confirmation_delta": {},
+            }
+        ),
         "Please retrieve my record.",
         [],
         900,
@@ -979,10 +952,14 @@ def test_stateful_semantic_frame_retries_when_goal_delta_has_untyped_optional_fi
         stateful_goal_ledger={},
     )
 
-    assert result["parsed"]["goal_delta"]["add"][0]["target_expression"] == {"entity_type": "user"}
-    assert result["adaptive_retry"]["initial_parse_error"] == (
-        "stateful semantic frame goal_delta.add[0] has a non-object target_expression"
-    )
+    goal = result["parsed"]["goal_delta"]["add"][0]
+    assert "target_expression" not in goal
+    assert "postcondition" not in goal
+    assert "quantifier" not in goal
+    assert result["adaptive_retry"]["attempted"] is False
+    assert result["runtime_delta_canonicalization"] == [
+        {"goal_index": 0, "dropped_optional_fields": ["target_expression", "postcondition", "quantifier"]}
+    ]
 
 
 def test_stateful_semantic_frame_retries_when_required_goal_ledger_is_missing():

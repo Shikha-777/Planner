@@ -4027,6 +4027,8 @@ def _generate_semantic_frame(
         stateful_goal_ledger,
         required=stateful_goal_ledger_required,
     )
+    parsed, initial_delta_canonicalization = _canonicalize_stateful_goal_delta(parsed)
+    delta_canonicalizations = list(initial_delta_canonicalization)
     runtime_delta_contract_required = stateful and (
         stateful_goal_ledger_required or stateful_goal_ledger is not None
     )
@@ -4055,6 +4057,8 @@ def _generate_semantic_frame(
             stateful_goal_ledger,
             required=stateful_goal_ledger_required,
         )
+        retry_parsed, retry_delta_canonicalization = _canonicalize_stateful_goal_delta(retry_parsed)
+        delta_canonicalizations.extend(retry_delta_canonicalization)
         inherited_goal_ledger = inherited_goal_ledger or retry_inherited_goal_ledger
         retry_parse_error = (
             _stateful_semantic_frame_contract_error(
@@ -4117,6 +4121,8 @@ def _generate_semantic_frame(
             stateful_goal_ledger,
             required=stateful_goal_ledger_required,
         )
+        recovery_parsed, recovery_delta_canonicalization = _canonicalize_stateful_goal_delta(recovery_parsed)
+        delta_canonicalizations.extend(recovery_delta_canonicalization)
         inherited_goal_ledger = inherited_goal_ledger or recovery_inherited_goal_ledger
         recovery_parse_error = (
             _stateful_semantic_frame_contract_error(
@@ -4150,6 +4156,7 @@ def _generate_semantic_frame(
             "required": runtime_delta_contract_required and not stateful_goal_ledger_required,
             "error": parse_error if parsed is None else None,
         },
+        "runtime_delta_canonicalization": delta_canonicalizations,
         "goal_ledger_recovery": {
             "used": inherited_goal_ledger,
             "reason": "preserved prior runtime continuity state when a valid semantic frame omitted it"
@@ -4157,6 +4164,57 @@ def _generate_semantic_frame(
             else None,
         },
     }
+
+
+def _canonicalize_stateful_goal_delta(
+    frame: dict[str, Any] | None,
+) -> tuple[dict[str, Any] | None, list[dict[str, Any]]]:
+    """Preserve only typed optional goal fields before runtime admission.
+
+    A model's minimal goal intent (ID, kind, objective) can be valid even when
+    it decorates that goal with a placeholder target or postcondition. The
+    runtime must not coerce such values into state. Dropping only malformed
+    optional fields is deterministic, domain-agnostic, and more conservative
+    than either trusting them or spending an additional planning turn.
+    """
+    if not isinstance(frame, dict):
+        return frame, []
+    delta = frame.get("goal_delta")
+    additions = delta.get("add") if isinstance(delta, dict) else None
+    if not isinstance(additions, list):
+        return frame, []
+    normalized = copy.deepcopy(frame)
+    normalized_additions = normalized["goal_delta"]["add"]
+    canonicalization: list[dict[str, Any]] = []
+    for index, proposal in enumerate(normalized_additions[:16]):
+        if not isinstance(proposal, dict):
+            continue
+        dropped: list[str] = []
+        if "target_expression" in proposal and not isinstance(proposal["target_expression"], dict):
+            proposal.pop("target_expression", None)
+            dropped.append("target_expression")
+        postcondition = proposal.get("postcondition")
+        if "postcondition" in proposal and (
+            not isinstance(postcondition, dict)
+            or ("observed_equals" in postcondition and not isinstance(postcondition["observed_equals"], dict))
+        ):
+            proposal.pop("postcondition", None)
+            dropped.append("postcondition")
+        if "quantifier" in proposal and str(proposal["quantifier"]).strip().lower() not in {
+            "one",
+            "all",
+            "any",
+            "exactly_n",
+        }:
+            proposal.pop("quantifier", None)
+            dropped.append("quantifier")
+        for field_name in ("dependencies", "evidence_ids", "required_evidence"):
+            if field_name in proposal and not isinstance(proposal[field_name], list):
+                proposal.pop(field_name, None)
+                dropped.append(field_name)
+        if dropped:
+            canonicalization.append({"goal_index": index, "dropped_optional_fields": dropped})
+    return normalized, canonicalization
 
 
 def _stateful_semantic_frame_contract_error(
