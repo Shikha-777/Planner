@@ -5294,23 +5294,38 @@ class GoalGraphAgent(Agent):
             result["planning_request"] = request
             result["stateful_goal_ledger_input"] = input_goal_ledger
             result["episode_state"] = self._episode_state.to_dict(include_events=True)
+        user_originated_delta = previous_source == "user"
+        latest_user_event_id = self._episode_state.latest_user_event_id()
         requested_fact_delta = result.get("stateful_requested_fact_delta")
-        requested_fact_application = self._episode_state.apply_requested_fact_delta(
-            requested_fact_delta,
-            source_event_id=self._episode_state.latest_user_event_id(),
+        requested_fact_application = (
+            self._episode_state.apply_requested_fact_delta(
+                requested_fact_delta,
+                source_event_id=latest_user_event_id,
+            )
+            if user_originated_delta
+            else {"accepted": [], "rejected": [{"reason": "requested_fact_delta_requires_user_turn"}]}
         )
         result["stateful_requested_fact_delta_application"] = requested_fact_application
-        confirmation_application = self._episode_state.apply_confirmation_delta(
-            result.get("stateful_confirmation_delta"),
-            source_event_id=self._episode_state.latest_user_event_id(),
+        confirmation_application = (
+            self._episode_state.apply_confirmation_delta(
+                result.get("stateful_confirmation_delta"),
+                source_event_id=latest_user_event_id,
+            )
+            if user_originated_delta
+            else {"accepted": False, "reason": "confirmation_delta_requires_user_turn"}
         )
         result["stateful_confirmation_delta_application"] = confirmation_application
         goal_delta = result.get("stateful_goal_delta")
-        goal_delta_application = self._episode_state.apply_goal_delta(
-            goal_delta,
-            source_event_id=self._episode_state.latest_user_event_id(),
+        goal_delta_application = (
+            self._episode_state.apply_goal_delta(
+                goal_delta,
+                source_event_id=latest_user_event_id,
+            )
+            if user_originated_delta
+            else {"accepted": [], "rejected": [{"reason": "goal_delta_requires_user_turn"}]}
         )
         result["stateful_goal_delta_application"] = goal_delta_application
+        result["stateful_delta_source_gate"] = {"previous_source": previous_source, "applied": user_originated_delta}
         result["stateful_goal_ledger"] = self._episode_state.goal_ledger()
         result["runtime_collection_resolution"] = self.admit_collection_resolution(result)
         if isinstance(legal_selection_fallback, dict):

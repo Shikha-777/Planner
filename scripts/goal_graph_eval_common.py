@@ -1280,10 +1280,10 @@ def _stateful_goal_delta_from_binding_plan(binding_plan: dict[str, Any]) -> dict
     frame = capability_plan.get("semantic_input_frame") if isinstance(capability_plan, dict) else None
     delta = frame.get("goal_delta") if isinstance(frame, dict) else None
     if not isinstance(delta, dict):
-        return {}
+        return {"add": []}
     additions = delta.get("add")
     if not isinstance(additions, list):
-        return {}
+        return {"add": []}
     return {"add": copy.deepcopy(additions[:16])}
 
 
@@ -1293,10 +1293,10 @@ def _stateful_requested_fact_delta_from_binding_plan(binding_plan: dict[str, Any
     frame = capability_plan.get("semantic_input_frame") if isinstance(capability_plan, dict) else None
     delta = frame.get("requested_fact_delta") if isinstance(frame, dict) else None
     if not isinstance(delta, dict):
-        return {}
+        return {"set": []}
     updates = delta.get("set")
     if not isinstance(updates, list):
-        return {}
+        return {"set": []}
     return {"set": copy.deepcopy(updates[:16])}
 
 
@@ -4685,7 +4685,11 @@ def build_tool_binding_frame_messages(
                         "in place of target_expression or postcondition objects. evidence_ids must be a list "
                         "of source IDs shown in the runtime state. Goal "
                         "deltas are proposals only: they cannot change or remove an existing goal. Do not "
-                        "create a meta-goal such as 'continue task'.\n"
+                        "create a meta-goal such as 'continue task'. A goal_delta represents a durable "
+                        "outcome the current user explicitly requested, not an authentication, lookup, "
+                        "disambiguation, or clarification step needed to reach an existing outcome. When a "
+                        "user turn only supplies a requested missing value, return goal_delta with add: [] "
+                        "and record only the supported requested_fact_delta.\n"
                         if stateful and not stateful_goal_ledger_required
                         else ""
                     ),

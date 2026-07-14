@@ -350,6 +350,40 @@ def test_goal_graph_agent_applies_additive_goal_delta_to_runtime_owned_ledger(mo
     assert '"goal_lookup"' in request
 
 
+def test_goal_graph_agent_rejects_state_deltas_after_a_tool_observation(monkeypatch):
+    goal_delta = {
+        "add": [
+            {
+                "goal_id": "goal_transient_lookup",
+                "kind": "retrieve",
+                "objective": "Retrieve a record after the tool result.",
+            }
+        ]
+    }
+    module = load_tau_goal_graph_module(
+        monkeypatch,
+        plan_result={"verification_ok": True, "calls": [], "stateful_goal_delta": goal_delta},
+    )
+    agent = module.GoalGraphAgent(
+        tools_info=[],
+        wiki="Policy text",
+        model="local-goal-graph",
+        provider="openai",
+    )
+
+    _, result, _ = agent.plan_action(
+        [{"role": "user", "content": "Please update record O-1."}],
+        previous_source="get_record",
+    )
+
+    assert agent._episode_state.goal_ledger() == {}
+    assert result["stateful_goal_delta_application"] == {
+        "accepted": [],
+        "rejected": [{"reason": "goal_delta_requires_user_turn"}],
+    }
+    assert result["stateful_delta_source_gate"] == {"previous_source": "get_record", "applied": False}
+
+
 def test_goal_graph_agent_executes_a_single_runtime_legal_resolution_transition(monkeypatch):
     module = load_tau_goal_graph_module(monkeypatch)
     agent = module.GoalGraphAgent(
